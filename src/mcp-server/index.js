@@ -1,11 +1,8 @@
-
-
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { FastMCP } from "fastmcp";
+import { z } from "zod";
 import { registerToolsWithServer, initializeTools } from './tools/index.js';
 import pg from 'pg';
 const { Pool } = pg;
-import { z } from 'zod';
 import dotenv from 'dotenv';
 import logger from './utils/logger.js';
 
@@ -41,7 +38,7 @@ export const initializeDbPool = () => {
  */
 export const createMCPServer = (dbPool) => {
   // Create a new MCP server instance
-  const server = new McpServer({
+  const server = new FastMCP({
     name: 'RAGmonsters MCP Server',
     version: '0.1.0',
     description: 'A domain-specific MCP server for the RAGmonsters dataset',
@@ -54,44 +51,34 @@ export const createMCPServer = (dbPool) => {
   // Register all tools from our tools module
   registerToolsWithServer(server);
 
-
-  server.tool(
-    "calculate-bmi",
-    {
-      weightKg: z.number(),
-      heightM: z.number()
+  server.addTool({
+    name: "add",
+    description: "Add two numbers",
+    parameters: z.object({
+      a: z.number(),
+      b: z.number(),
+    }),
+    execute: async (args) => {
+      return String(args.a + args.b);
     },
-    async ({ weightKg, heightM }) => ({
-      content: [{
-        type: "text",
-        text: String(weightKg / (heightM * heightM))
-      }]
-    })
-  );
+  });
 
-  console.log('MCP server created and configured');
+  logger.info('MCP server created and configured');
   return server;
 };
 
 /**
  * Initialize and start the MCP server
- * @returns {Promise<{server: MCPServer, dbPool: Object}>}
  */
 export const initializeAndStartServer = async () => {
   const dbPool = initializeDbPool();
   const server = createMCPServer(dbPool);
   
-  // Connect as normal
-  logger.info('Connecting MCP server with STDIO transport');
-  try {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    logger.info('MCP server connected successfully');
-  } catch (error) {
-    logger.error(`Failed to connect MCP server: ${error.message}`);
-    logger.error(error.stack);
-    throw error;
-  }
+  logger.info('Starting MCP server with STDIO transport');
+  server.start({
+    transportType: "stdio",
+  });
+  
 };
 
 initializeAndStartServer();

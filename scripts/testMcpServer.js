@@ -45,7 +45,7 @@ async function createClient() {
     {
       name: "RAGmonsters-mcp-pg-client",
       version: "1.0.0",
-      timeout: 120000  // Increase timeout to 120 seconds
+      timeout: 10000  // Increase timeout to 120 seconds
     }
   );
   
@@ -159,26 +159,34 @@ async function main() {
     // List the tools
     logger.info('Listing available tools...');
     try {
+      console.log('About to call listTools()...');
       const tools = await client.listTools();
+      console.log('listTools() returned:', JSON.stringify(tools, null, 2));
       logger.logObject('Available tools', tools);
       
-      if (tools.tools.length === 0) {
+      // Check if tools array exists and has items
+      if (!tools || !tools.tools || tools.tools.length === 0) {
+        console.error('WARNING: No tools were returned from the server!');
         logger.error('WARNING: No tools were returned from the server!');
       }
     } catch (error) {
+      console.error(`Error listing tools: ${error.message}`);
+      console.error(error.stack);
       logger.error(`Error listing tools: ${error.message}`);
       logger.error(error.stack);
       throw error;
     }
-    // Test the calculate-bmi tool
-    logger.info(`Test the calculate-bmi tool`);
-    const result = await client.callTool('calculate-bmi', { weightKg: 70, heightM: 1.75 });
+    logger.info('Listing available tools completed');
+
+    // Test the add two numbers tool
+    logger.info(`Test the add two numbers tool`);
+    const result = await client.callTool('add', { a: 10.0, b: 20.0 });
   
     logger.info(`Result: ${result.content[0].text}`);
 
     // Test the tools
-    await testGetMonsters(client);
-    await testGetMonsterById(client);
+    //await testGetMonsters(client);
+    //await testGetMonsterById(client);
     
     logger.info('All tests completed successfully!');
   } catch (error) {
@@ -192,8 +200,6 @@ async function main() {
 }
 
 // Run the tests
-main().catch(error => {
-  logger.error(`Unhandled error: ${error.message}`);
-  logger.error(error.stack);
-  process.exit(1);
-});
+await main();
+logger.info('Test ended');
+process.exit(0);

@@ -24,8 +24,8 @@ class Logger {
   constructor(logFile = DEFAULT_LOG_FILE) {
     this.logFile = logFile;
     
-    // Create a write stream for the log file
-    this.stream = fs.createWriteStream(logFile, { flags: 'a' });
+    // Clear the log file when creating a new logger
+    fs.writeFileSync(logFile, '', { flag: 'w' });
     
     // Log initialization
     this.info(`Logger initialized at ${new Date().toISOString()}`);
@@ -49,7 +49,18 @@ class Logger {
    */
   log(level, message) {
     const formattedMessage = this.formatMessage(level, message);
-    this.stream.write(formattedMessage);
+    
+    // Use synchronous file operations to avoid STDIO conflicts
+    try {
+      fs.appendFileSync(this.logFile, formattedMessage);
+      
+      // Also output to console for debugging
+      if (level === 'ERROR') {
+        console.error(formattedMessage.trim());
+      }
+    } catch (error) {
+      console.error(`Failed to write log: ${error.message}`);
+    }
   }
   
   /**
@@ -95,7 +106,7 @@ class Logger {
    */
   close() {
     this.info(`Logger closed at ${new Date().toISOString()}`);
-    this.stream.end();
+    // No need to close anything with synchronous file operations
   }
 }
 
