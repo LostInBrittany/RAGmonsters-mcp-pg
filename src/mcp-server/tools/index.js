@@ -25,8 +25,8 @@ export function registerToolsWithServer(server) {
       }).optional().describe('Optional filters for the query'),
       
       sort: z.object({
-        field: z.string().describe('Field to sort by (name, category, habitat, rarity)'),
-        direction: z.enum(['asc', 'desc']).describe('Sort direction (asc or desc)')
+        field: z.string().optional().describe('Field to sort by (name, category, habitat, rarity)'),
+        direction: z.enum(['asc', 'desc']).optional().describe('Sort direction (asc or desc)')
       }).optional().describe('Optional sorting parameters'),
       
       limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),

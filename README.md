@@ -4,6 +4,8 @@
 
 This repository demonstrates a more advanced approach to integrating Large Language Models (LLMs) with databases using the Model Context Protocol (MCP). While generic MCP PostgreSQL servers allow LLMs to explore databases through raw SQL queries, this project takes a different approach by creating a **custom MCP server** that provides a domain-specific API tailored to the application's needs.
 
+This implementation uses **FastMCP**, a high-performance implementation of the Model Context Protocol, which provides improved efficiency and reliability for tool-based interactions with LLMs.
+
 This project uses the [RAGmonsters](https://github.com/LostInBrittany/RAGmonsters) dataset as its foundation. RAGmonsters is an open-source project that provides a rich, fictional dataset of monsters with various attributes, abilities, and relationships - specifically designed for demonstrating and testing Retrieval-Augmented Generation (RAG) systems.
 
 ### The Problem with Generic MCP Database Access
@@ -72,25 +74,33 @@ LLM: (Uses our domain-specific API)
 ├── package.json        # Node.js project configuration
 ├── README.md           # This documentation
 ├── img/                # Images for documentation
+├── scripts/
+│   ├── testMcpServer.js # Test script for the MCP server
+│   └── testLogger.js    # Logger for test script
 ├── src/
 │   ├── index.js        # Main application server
-│   ├── mcp-server/     # Custom MCP server implementation
+│   ├── mcp-server/     # Custom MCP server implementation with FastMCP
 │   │   ├── index.js    # Server entry point
 │   │   ├── tools/      # Domain-specific tools
-│   │   │   ├── monsters.js    # Monster-related operations
-│   │   │   ├── abilities.js   # Ability-related operations
-│   │   │   └── elements.js    # Element-related operations
+│   │   │   ├── index.js      # Tool registration
+│   │   │   └── monsters.js   # Monster-related operations
 │   │   └── utils/     # Helper utilities
+│   │       └── logger.js     # Logging functionality
 │   ├── llm.js          # LangChain integration for LLM
 │   └── public/         # Web interface files
 │       └── index.html  # Chat interface
 ```
 
-## Features (Planned)
+## Features
 
-- **Custom MCP Server**: Domain-specific API for RAGmonsters data
+- **Custom MCP Server with FastMCP**: High-performance domain-specific API for RAGmonsters data
 - **Optimized Queries**: Pre-built efficient database operations
 - **Business Logic Layer**: Domain rules and constraints embedded in the API
+- **Structured Response Format**: Consistent JSON responses for LLM consumption
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+- **Test Suite**: Scripts to verify server functionality
+
+### Planned Features
 - **LangChain.js Integration**: For LLM interactions
 - **Web Interface**: Simple chat interface to interact with the data
 - **Deployment on Clever Cloud**: Easy deployment instructions
@@ -106,13 +116,32 @@ LLM: (Uses our domain-specific API)
 
 ## Getting Started
 
-This project is currently in development. Check back soon for implementation details and usage instructions.
+### Installation
+
+1. Clone this repository
+2. Install dependencies: `npm install`
+3. Copy `.env.example` to `.env` and configure your PostgreSQL connection string
+4. Run the test script: `node scripts/testMcpServer.js`
+
+### Available Tools
+
+The MCP server provides the following tools:
+
+1. **getMonsters** - Get a list of monsters with optional filtering, sorting, and pagination
+   - Parameters: filters (category, habitat, rarity), sort (field, direction), limit, offset
+
+2. **getMonsterById** - Get detailed information about a specific monster by ID
+   - Parameters: monsterId
+
+3. **add** - Simple utility to add two numbers (for testing)
+   - Parameters: a, b
 
 ## Prerequisites
 
 - Node.js 23 or later
 - PostgreSQL database with RAGmonsters data
 - Access to an LLM API (e.g., OpenAI)
+- FastMCP package (included in dependencies)
 
 ## License
 
@@ -122,4 +151,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [RAGmonsters](https://github.com/LostInBrittany/RAGmonsters) for the sample dataset
 - [Model Context Protocol](https://modelcontextprotocol.ai/) for the MCP specification
+- [FastMCP](https://github.com/fastmcp/fastmcp) for the high-performance MCP implementation
 - [Clever Cloud](https://www.clever-cloud.com/) for hosting capabilities

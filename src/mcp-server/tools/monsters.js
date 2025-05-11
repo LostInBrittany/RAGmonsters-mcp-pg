@@ -100,18 +100,21 @@ export async function getMonsters(params = {}) {
     logger.debug(`First monster in results: ${JSON.stringify(monsters[0] || {})}`);
     
     // Format the response
-    return monsters.map(monster => ({
-      id: monster.monster_id,
-      name: monster.name,
-      category: monster.category,
-      habitat: monster.habitat,
-      rarity: monster.rarity,
-      powers: {
-        primary: monster.primary_power,
-        secondary: monster.secondary_power,
-        special: monster.special_ability
-      }
-    }));
+    return { content:monsters.map(monster => ({
+      type: 'text',
+      text: JSON.stringify({
+        id: monster.monster_id,
+        name: monster.name,
+        category: monster.category,
+        habitat: monster.habitat,
+        rarity: monster.rarity,
+        powers: {
+          primary: monster.primary_power,
+          secondary: monster.secondary_power,
+          special: monster.special_ability
+        }
+      }),
+    }))};
   } catch (error) {
     logger.error(`Error in getMonsters: ${error.message}`);
     logger.error(error.stack);
@@ -243,40 +246,40 @@ export async function getMonsterById(params) {
     
     // Format the response
     return {
-      id: monster.monster_id,
-      name: monster.name,
-      category: monster.category,
-      habitat: monster.habitat,
-      rarity: monster.rarity,
-      discovery: monster.discovery,
-      physicalAttributes: {
-        height: monster.height,
-        weight: monster.weight,
-        appearance: monster.appearance
-      },
-      powers: {
-        primary: monster.primary_power,
-        secondary: monster.secondary_power,
-        special: monster.special_ability
-      },
-      keywords: Object.values(keywordAbilities),
-      flaws: flaws.map(flaw => ({
-        name: flaw.flaw_name,
-        rating: flaw.rating
-      })),
-      strengths: strengths.map(strength => ({
-        target: strength.target_name,
-        modifier: strength.modifier
-      })),
-      weaknesses: weaknesses.map(weakness => ({
-        target: weakness.target_name,
-        modifier: weakness.modifier
-      })),
-
-      lore: {
-        behaviorEcology: monster.behavior_ecology,
-        notableSpecimens: monster.notable_specimens
-      }
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          id: monster.monster_id,
+          name: monster.name,
+          category: monster.category,
+          habitat: monster.habitat,
+          rarity: monster.rarity,
+          discovery: monster.discovery,
+          physicalAttributes: {
+            height: monster.height,
+            weight: monster.weight,
+            appearance: monster.appearance
+          },
+          powers: {
+            primary: monster.primary_power,
+            secondary: monster.secondary_power,
+            special: monster.special_ability
+          },
+          keywords: Object.values(keywordAbilities),
+          flaws: flaws.map(flaw => ({
+            name: flaw.flaw_name,
+            rating: flaw.rating
+          })),
+          strengths: strengths.map(strength => ({
+            target: strength.target_name,
+            modifier: strength.modifier
+          })),
+          weaknesses: weaknesses.map(weakness => ({
+            target: weakness.target_name,
+            modifier: weakness.modifier
+          }))
+        })
+      }]
     };
   } catch (error) {
     logger.error(`Error in getMonsterById: ${error.message}`);

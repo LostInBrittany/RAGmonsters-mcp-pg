@@ -64,28 +64,37 @@ async function testGetMonsters(client) {
   try {
     // Get all monsters with default parameters (limit 10)
     logger.info('Getting monsters (default parameters)');
-    const monsters = await client.callTool('getMonsters', {});
-    logger.info(`Retrieved ${monsters.length} monsters`);
+    const monsters = await client.callTool({
+      name: 'getMonsters', 
+      arguments: {}
+    });
+    logger.info(`Retrieved ${monsters.content.length} monsters`);
     
     // Log the first monster
     logger.info('First monster');
-    logger.logObject('Monster details', monsters[0]);
+    logger.logObject('Monster details', monsters.content[0].text);
     
     // Test filtering by habitat
     logger.info('Filtering by habitat (Volcanic Mountains)');
-    const volcanicMonsters = await client.callTool('getMonsters', {
-      filters: { habitat: 'Volcanic Mountains' }
+    const volcanicMonsters = await client.callTool({
+      name: 'getMonsters',
+      arguments: {
+        filters: { habitat: 'Volcanic Mountains' }
+      }
     });
-    logger.info(`Retrieved ${volcanicMonsters.length} monsters from Volcanic Mountains`);
-    logger.info(`Monster names: ${volcanicMonsters.map(m => m.name).join(', ')}`);
+    logger.info(`Retrieved ${volcanicMonsters.content.length} monsters from Volcanic Mountains`);
+    logger.info(`Monster names: ${JSON.parse(volcanicMonsters.content[0].text).name}`);
     
     // Test sorting
     logger.info('Sorting by name in descending order');
-    const sortedMonsters = await client.callTool('getMonsters', {
-      sort: { field: 'name', direction: 'desc' },
-      limit: 5
+    const sortedMonsters = await client.callTool({
+      name: 'getMonsters',
+      arguments: {
+        sort: { field: 'name', direction: 'desc' },
+        limit: 5
+      }
     });
-    logger.info(`Top 5 monsters sorted by name (desc): ${sortedMonsters.map(m => m.name).join(', ')}`);
+    logger.info(`Top 5 monsters sorted by name (desc): ${sortedMonsters.content.map(m => JSON.parse(m.text).name).join(', ')}`);
     
   } catch (error) {
     logger.error(`Error testing getMonsters: ${error.message}`);
@@ -109,21 +118,25 @@ async function testGetMonsterById(client) {
         limit: 1
       }
     });
-    const monsterId = monsters[0].id;
+    const monsterId = JSON.parse(monsters.content[0].text).id;
     
-    logger.info(`Getting details for monster ID ${monsterId} (${monsters[0].name})`);
-    const monsterDetails = await client.callTool('getMonsterById', { monsterId });
+    logger.info(`Getting details for monster ID ${monsterId} (${JSON.parse(monsters.content[0].text).name})`);
+    const monsterDetails = await client.callTool({
+      name: 'getMonsterById',
+      arguments: { monsterId }
+    });
     
     // Log selected details
     logger.info('Monster details:');
-    logger.info(`Name: ${monsterDetails.name}`);
-    logger.info(`Category: ${monsterDetails.category}`);
-    logger.info(`Habitat: ${monsterDetails.habitat}`);
-    logger.info(`Powers: ${monsterDetails.powers.primary}, ${monsterDetails.powers.secondary}, ${monsterDetails.powers.special}`);
+    logger.info(JSON.stringify(monsterDetails.content[0].text));
+    logger.info(`Name: ${JSON.parse(monsterDetails.content[0].text).name}`);
+    logger.info(`Category: ${JSON.parse(monsterDetails.content[0].text).category}`);
+    logger.info(`Habitat: ${JSON.parse(monsterDetails.content[0].text).habitat}`);
+    logger.info(`Powers: ${JSON.parse(monsterDetails.content[0].text).powers.primary}, ${JSON.parse(monsterDetails.content[0].text).powers.secondary}, ${JSON.parse(monsterDetails.content[0].text).powers.special}`);
     
     // Log keywords and abilities
     logger.info('Keywords and Abilities:');
-    monsterDetails.keywords.forEach(keyword => {
+    JSON.parse(monsterDetails.content[0].text).keywords.forEach(keyword => {
       logger.info(`- ${keyword.name} (Rating: ${keyword.rating})`);
       keyword.abilities.forEach(ability => {
         logger.info(`  • ${ability.name} (${ability.mastery})`);
@@ -132,12 +145,12 @@ async function testGetMonsterById(client) {
     
     // Log strengths and weaknesses
     logger.info('Strengths:');
-    monsterDetails.strengths.forEach(strength => {
+    JSON.parse(monsterDetails.content[0].text).strengths.forEach(strength => {
       logger.info(`- Strong against ${strength.target} (${strength.modifier})`);
     });
     
     logger.info('Weaknesses:');
-    monsterDetails.weaknesses.forEach(weakness => {
+    JSON.parse(monsterDetails.content[0].text).weaknesses.forEach(weakness => {
       logger.info(`- Weak against ${weakness.target} (${weakness.modifier})`);
     });
   } catch (error) {
@@ -179,14 +192,17 @@ async function main() {
     logger.info('Listing available tools completed');
 
     // Test the add two numbers tool
-    logger.info(`Test the add two numbers tool`);
-    const result = await client.callTool('add', { a: 10.0, b: 20.0 });
+    //logger.info(`Test the add two numbers tool`);
+    //const result = await client.callTool({
+    //  name: 'add',
+    //  arguments: { a: 10.0, b: 20.0 }
+    //});
   
-    logger.info(`Result: ${result.content[0].text}`);
+    //logger.info(`Result: ${result.content[0].text}`);
 
     // Test the tools
-    //await testGetMonsters(client);
-    //await testGetMonsterById(client);
+    await testGetMonsters(client);
+    await testGetMonsterById(client);
     
     logger.info('All tests completed successfully!');
   } catch (error) {
