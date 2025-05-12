@@ -239,6 +239,73 @@ LLM_API_URL=https://api.openai.com/v1
 
 The application supports any OpenAI-compatible API, including self-hosted models and alternative providers.
 
+## Deploying to Clever Cloud
+
+### Using the Clever Cloud CLI
+
+1. Install the Clever Cloud CLI:
+   ```bash
+   npm install -g clever-tools
+   ```
+
+2. Login to your Clever Cloud account:
+   ```bash
+   clever login
+   ```
+
+3. Create a new application:
+   ```bash
+   clever create --type node <APP_NAME>
+   ```
+
+4. Add your domain (optional but recommended):
+   ```bash
+   clever domain add <YOUR_DOMAIN_NAME>
+   ```
+   
+5. Create a PostgreSQL add-on and link it to your application:
+   ```bash
+   clever addon create <APP_NAME>-pg --plan dev
+   clever service link-addon <APP_NAME>-pg
+   ```
+   
+   This will automatically set the `POSTGRESQL_ADDON_URI` environment variable in your application.
+
+6. Set the required environment variables:
+   ```bash
+   clever env set LLM_API_KEY "your-openai-api-key"
+   clever env set LLM_API_MODEL "gpt-4o-mini" # Optional, defaults to gpt-4o-mini
+   clever env set LLM_API_URL "https://api.your-llm-provider.com" # Optional, for alternative OpenAI-compatible providers
+   ```
+
+7. Deploy your application:
+   ```bash
+   clever deploy
+   ```
+
+8. Open your application:
+   ```bash
+   clever open
+   ```
+
+### Using the Clever Cloud Console
+
+You can also deploy directly from the [Clever Cloud Console](https://console.clever-cloud.com/):
+
+1. Create a new application in the console
+2. Select Node.js as the runtime
+3. Create a PostgreSQL add-on and link it to your application
+4. Set the required environment variables in the console:
+   - `LLM_API_KEY`: Your OpenAI API key
+   - `LLM_API_MODEL`: (Optional) The model to use, defaults to gpt-4o-mini
+5. Deploy your application using Git or GitHub integration
+
+### Important Notes
+
+- The `POSTGRESQL_ADDON_URI` environment variable is automatically set by Clever Cloud when you link a PostgreSQL add-on to your application
+- The application requires Node.js 20 or later, which is available on Clever Cloud
+- The application will automatically run on port 8080, which is the default port for Node.js applications on Clever Cloud
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
