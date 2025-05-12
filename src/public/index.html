@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGmonsters Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .monster-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 1rem;
+            height: 100%;
+        }
+        .monster-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            font-weight: bold;
+        }
+        .badge {
+            margin-right: 0.3rem;
+        }
+        #monster-detail {
+            display: none;
+        }
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+        .detail-title {
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .keyword-item {
+            margin-bottom: 1rem;
+        }
+        .ability-list {
+            padding-left: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="pb-3 mb-4 border-bottom">
+            <div class="d-flex align-items-center">
+                <h1 class="display-5 fw-bold">RAGmonsters Explorer</h1>
+                <span class="ms-auto badge bg-primary">MCP API</span>
+            </div>
+            <nav class="mt-2">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Explorer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="chat.html">Chat</a>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <div class="row">
+            <!-- Filters -->
+            <div class="col-md-3 mb-4">
+                <div class="card">
+                    <div class="card-header">Filters</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="habitat-filter" class="form-label">Habitat</label>
+                            <select class="form-select" id="habitat-filter">
+                                <option value="">All Habitats</option>
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category-filter" class="form-label">Category</label>
+                            <select class="form-select" id="category-filter">
+                                <option value="">All Categories</option>
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rarity-filter" class="form-label">Rarity</label>
+                            <select class="form-select" id="rarity-filter">
+                                <option value="">All Rarities</option>
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <button id="apply-filters" class="btn btn-primary w-100">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monster List -->
+            <div class="col-md-9">
+                <div id="monster-list">
+                    <div class="row" id="monsters-container">
+                        <!-- Will be populated with monster cards -->
+                        <div class="loading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monster Detail View -->
+                <div id="monster-detail" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 id="detail-name">Monster Name</h2>
+                        <button id="back-to-list" class="btn btn-outline-secondary btn-sm">Back to List</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Basic Information</h3>
+                                    <p><strong>Category:</strong> <span id="detail-category"></span></p>
+                                    <p><strong>Habitat:</strong> <span id="detail-habitat"></span></p>
+                                    <p><strong>Rarity:</strong> <span id="detail-rarity"></span></p>
+                                    <p><strong>Discovery:</strong> <span id="detail-discovery"></span></p>
+                                </div>
+
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Physical Attributes</h3>
+                                    <p><strong>Height:</strong> <span id="detail-height"></span></p>
+                                    <p><strong>Weight:</strong> <span id="detail-weight"></span></p>
+                                    <p><strong>Appearance:</strong> <span id="detail-appearance"></span></p>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Powers</h3>
+                                    <p><strong>Primary:</strong> <span id="detail-primary-power"></span></p>
+                                    <p><strong>Secondary:</strong> <span id="detail-secondary-power"></span></p>
+                                    <p><strong>Special Ability:</strong> <span id="detail-special-ability"></span></p>
+                                </div>
+
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Keywords & Abilities</h3>
+                                    <div id="detail-keywords">
+                                        <!-- Will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Strengths</h3>
+                                    <ul id="detail-strengths">
+                                        <!-- Will be populated dynamically -->
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-section">
+                                    <h3 class="detail-title">Weaknesses</h3>
+                                    <ul id="detail-weaknesses">
+                                        <!-- Will be populated dynamically -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allMonsters = [];
+        let uniqueHabitats = new Set();
+        let uniqueCategories = new Set();
+        let uniqueRarities = new Set();
+
+        // DOM elements
+        const monstersContainer = document.getElementById('monsters-container');
+        const monsterList = document.getElementById('monster-list');
+        const monsterDetail = document.getElementById('monster-detail');
+        const backToListBtn = document.getElementById('back-to-list');
+        const habitatFilter = document.getElementById('habitat-filter');
+        const categoryFilter = document.getElementById('category-filter');
+        const rarityFilter = document.getElementById('rarity-filter');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', initialize);
+        backToListBtn.addEventListener('click', showMonsterList);
+        applyFiltersBtn.addEventListener('click', applyFilters);
+
+        // Initialize the application
+        async function initialize() {
+            try {
+                await fetchAndDisplayMonsters();
+                populateFilterOptions();
+            } catch (error) {
+                console.error('Error initializing application:', error);
+                monstersContainer.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load monsters. Please try again later.
+                    </div>
+                `;
+            }
+        }
+
+        // Fetch monsters from the API and display them
+        async function fetchAndDisplayMonsters(filters = {}) {
+            monstersContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+
+            try {
+                // Prepare the API call parameters
+                const args = {};
+                
+                if (Object.keys(filters).length > 0) {
+                    args.filters = {};
+                    if (filters.habitat) args.filters.habitat = filters.habitat;
+                    if (filters.category) args.filters.category = filters.category;
+                    if (filters.rarity) args.filters.rarity = filters.rarity;
+                }
+
+                // Call the API
+                const response = await fetch('/api/tools/getMonsters', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(args)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Parse the monster data from the content array
+                allMonsters = data.content.map(item => JSON.parse(item.text));
+                
+                // Collect unique values for filters
+                allMonsters.forEach(monster => {
+                    if (monster.habitat) uniqueHabitats.add(monster.habitat);
+                    if (monster.category) uniqueCategories.add(monster.category);
+                    if (monster.rarity) uniqueRarities.add(monster.rarity);
+                });
+
+                // Display the monsters
+                displayMonsters(allMonsters);
+            } catch (error) {
+                console.error('Error fetching monsters:', error);
+                monstersContainer.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load monsters: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Display monsters in the UI
+        function displayMonsters(monsters) {
+            if (monsters.length === 0) {
+                monstersContainer.innerHTML = `
+                    <div class="alert alert-info" role="alert">
+                        No monsters found matching the current filters.
+                    </div>
+                `;
+                return;
+            }
+
+            monstersContainer.innerHTML = '';
+            
+            monsters.forEach(monster => {
+                const card = document.createElement('div');
+                card.className = 'col-md-4 mb-4';
+                card.innerHTML = `
+                    <div class="card monster-card" data-id="${monster.id}">
+                        <div class="card-header">${monster.name}</div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <span class="badge bg-info">${monster.category}</span>
+                                <span class="badge bg-success">${monster.habitat}</span>
+                                <span class="badge bg-warning text-dark">${monster.rarity}</span>
+                            </p>
+                            <p class="card-text">${monster.powers.primary.split(' - ')[0]}</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click event to show monster details
+                card.querySelector('.monster-card').addEventListener('click', () => {
+                    fetchAndDisplayMonsterDetails(monster.id);
+                });
+                
+                monstersContainer.appendChild(card);
+            });
+        }
+
+        // Fetch and display detailed information about a specific monster
+        async function fetchAndDisplayMonsterDetails(monsterId) {
+            monsterList.style.display = 'none';
+            monsterDetail.style.display = 'block';
+            
+            // Show loading state
+            monsterDetail.querySelector('.card-body').innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/tools/getMonsterById', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ monsterId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const monster = JSON.parse(data.content[0].text);
+                
+                // Update the UI with monster details
+                document.getElementById('detail-name').textContent = monster.name;
+                document.getElementById('detail-category').textContent = monster.category;
+                document.getElementById('detail-habitat').textContent = monster.habitat;
+                document.getElementById('detail-rarity').textContent = monster.rarity;
+                document.getElementById('detail-discovery').textContent = monster.discovery || 'Unknown';
+                
+                // Physical attributes
+                if (monster.physicalAttributes) {
+                    document.getElementById('detail-height').textContent = monster.physicalAttributes.height || 'Unknown';
+                    document.getElementById('detail-weight').textContent = monster.physicalAttributes.weight || 'Unknown';
+                    document.getElementById('detail-appearance').textContent = monster.physicalAttributes.appearance || 'Unknown';
+                }
+                
+                // Powers
+                document.getElementById('detail-primary-power').textContent = monster.powers.primary;
+                document.getElementById('detail-secondary-power').textContent = monster.powers.secondary;
+                document.getElementById('detail-special-ability').textContent = monster.powers.special;
+                
+                // Keywords and abilities
+                const keywordsContainer = document.getElementById('detail-keywords');
+                keywordsContainer.innerHTML = '';
+                
+                if (monster.keywords && monster.keywords.length > 0) {
+                    monster.keywords.forEach(keyword => {
+                        const keywordDiv = document.createElement('div');
+                        keywordDiv.className = 'keyword-item';
+                        
+                        let abilitiesHtml = '';
+                        if (keyword.abilities && keyword.abilities.length > 0) {
+                            abilitiesHtml = `
+                                <ul class="ability-list">
+                                    ${keyword.abilities.map(ability => `
+                                        <li>${ability.name} (${ability.mastery})</li>
+                                    `).join('')}
+                                </ul>
+                            `;
+                        }
+                        
+                        keywordDiv.innerHTML = `
+                            <strong>${keyword.name}</strong> (Rating: ${keyword.rating})
+                            ${abilitiesHtml}
+                        `;
+                        
+                        keywordsContainer.appendChild(keywordDiv);
+                    });
+                } else {
+                    keywordsContainer.innerHTML = '<p>No keywords available</p>';
+                }
+                
+                // Strengths
+                const strengthsList = document.getElementById('detail-strengths');
+                strengthsList.innerHTML = '';
+                
+                if (monster.strengths && monster.strengths.length > 0) {
+                    monster.strengths.forEach(strength => {
+                        const li = document.createElement('li');
+                        li.textContent = `Strong against ${strength.target} (${strength.modifier > 0 ? '+' : ''}${strength.modifier})`;
+                        strengthsList.appendChild(li);
+                    });
+                } else {
+                    strengthsList.innerHTML = '<li>No known strengths</li>';
+                }
+                
+                // Weaknesses
+                const weaknessesList = document.getElementById('detail-weaknesses');
+                weaknessesList.innerHTML = '';
+                
+                if (monster.weaknesses && monster.weaknesses.length > 0) {
+                    monster.weaknesses.forEach(weakness => {
+                        const li = document.createElement('li');
+                        li.textContent = `Weak against ${weakness.target} (${weakness.modifier})`;
+                        weaknessesList.appendChild(li);
+                    });
+                } else {
+                    weaknessesList.innerHTML = '<li>No known weaknesses</li>';
+                }
+                
+                // Restore the original card body structure
+                monsterDetail.querySelector('.card-body').innerHTML = document.getElementById('monster-detail').querySelector('.card-body').innerHTML;
+                
+            } catch (error) {
+                console.error('Error fetching monster details:', error);
+                monsterDetail.querySelector('.card-body').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load monster details: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Show the monster list (hide details view)
+        function showMonsterList() {
+            monsterDetail.style.display = 'none';
+            monsterList.style.display = 'block';
+        }
+
+        // Populate filter dropdowns with unique values
+        function populateFilterOptions() {
+            // Habitat filter
+            habitatFilter.innerHTML = '<option value="">All Habitats</option>';
+            Array.from(uniqueHabitats).sort().forEach(habitat => {
+                const option = document.createElement('option');
+                option.value = habitat;
+                option.textContent = habitat;
+                habitatFilter.appendChild(option);
+            });
+            
+            // Category filter
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            Array.from(uniqueCategories).sort().forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categoryFilter.appendChild(option);
+            });
+            
+            // Rarity filter
+            rarityFilter.innerHTML = '<option value="">All Rarities</option>';
+            Array.from(uniqueRarities).sort().forEach(rarity => {
+                const option = document.createElement('option');
+                option.value = rarity;
+                option.textContent = rarity;
+                rarityFilter.appendChild(option);
+            });
+        }
+
+        // Apply selected filters
+        function applyFilters() {
+            const filters = {
+                habitat: habitatFilter.value,
+                category: categoryFilter.value,
+                rarity: rarityFilter.value
+            };
+            
+            // Remove empty filters
+            Object.keys(filters).forEach(key => {
+                if (!filters[key]) delete filters[key];
+            });
+            
+            fetchAndDisplayMonsters(filters);
+        }
+    </script>
+</body>
+</html>
