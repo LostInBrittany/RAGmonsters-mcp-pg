@@ -1,12 +1,12 @@
 /**
  * Tool definitions for the RAGmonsters MCP server
  */
-import { getMonsters, getMonsterById, initializeTools } from './monsters.js';
+import { getMonsters, getMonsterById, getHabitats, getMonsterByHabitat, getMonsterByName, initializeTools } from './monsters.js';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
 // Export the tools and initialize function
-export { getMonsters, getMonsterById, initializeTools };
+export { getMonsters, getMonsterById, getHabitats, getMonsterByHabitat, getMonsterByName, initializeTools };
 
 /**
  * Register all tools with an MCP server
@@ -43,6 +43,33 @@ export function registerToolsWithServer(server) {
     }),
     execute: getMonsterById
   });
-  logger.info(`Registered 2 tools with the MCP server`);
+
+  server.addTool({
+    name: 'getHabitats',
+    description: 'Get a list of all available habitats in the database',
+    parameters: z.object({}),
+    execute: getHabitats
+  });
+
+  server.addTool({
+    name: 'getMonsterByHabitat',
+    description: 'Get monsters by habitat (exact match only). IMPORTANT: for best results, first call getHabitats to get a list of available habitats, then find the most appropriate one to use with this tool.',
+    parameters: z.object({
+      habitat: z.string().describe('Exact habitat name (must match exactly). For best results, first call getHabitats to get a list of available habitats, then find the most appropriate one to use with this tool.'),
+      limit: z.number().optional().describe('Maximum number of results to return (default: 10)')
+    }),
+    execute: getMonsterByHabitat
+  });
+
+  server.addTool({
+    name: 'getMonsterByName',
+    description: 'Get monsters by name (partial match, returns up to 5 matches)',
+    parameters: z.object({
+      name: z.string().describe('Name of the monster to search for (can be partial)')
+    }),
+    execute: getMonsterByName
+  });
+  
+  logger.info(`Registered 5 tools with the MCP server`);
   logger.info(`Available categories: monsters`);
 }

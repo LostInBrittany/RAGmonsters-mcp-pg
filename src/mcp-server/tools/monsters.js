@@ -287,3 +287,207 @@ export async function getMonsterById(params) {
     throw new Error(`Failed to retrieve monster details: ${error.message}`);
   }
 }
+
+/**
+ * Get a list of all available habitats in the database
+ * 
+ * @returns {Promise<Array>} List of all habitat names
+ */
+export async function getHabitats() {
+  try {
+    if (!dbPool) {
+      throw new Error('Database pool not initialized. Call initialize() first.');
+    }
+    
+    logger.info('getHabitats called');
+    
+    // Query to get distinct habitats
+    const query = `
+      SELECT DISTINCT habitat
+      FROM monsters
+      WHERE habitat IS NOT NULL
+      ORDER BY habitat ASC
+    `;
+    
+    const results = await executeQuery(dbPool, query);
+    
+    // Extract habitat names
+    const habitats = results.map(row => row.habitat);
+    
+    logger.info(`getHabitats returning ${habitats.length} habitats`);
+    
+    // Format the response
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify(habitats)
+      }]
+    };
+  } catch (error) {
+    logger.error(`Error in getHabitats: ${error.message}`);
+    logger.error(error.stack);
+    throw new Error(`Failed to retrieve habitats: ${error.message}`);
+  }
+}
+
+/**
+ * Get monsters by habitat (exact match only)
+ * 
+ * @param {Object} params - Tool parameters
+ * @param {string} params.habitat - Exact habitat name
+ * @param {number} [params.limit=10] - Maximum number of results to return
+ * @returns {Promise<Object>} Monsters matching the habitat
+ */
+export async function getMonsterByHabitat(params) {
+  try {
+    if (!dbPool) {
+      throw new Error('Database pool not initialized. Call initialize() first.');
+    }
+    
+    logger.info(`getMonsterByHabitat called with params: ${JSON.stringify(params)}`);
+    
+    const { habitat, limit = 10 } = params;
+    
+    if (!habitat) {
+      throw new Error('Habitat parameter is required');
+    }
+    
+    // Query monsters with the exact habitat name
+    const query = `
+      SELECT 
+        m.monster_id,
+        m.name,
+        m.category,
+        m.habitat,
+        m.rarity,
+        m.primary_power,
+        m.secondary_power,
+        m.special_ability
+      FROM 
+        monsters m
+      WHERE 
+        m.habitat = $1
+      ORDER BY 
+        m.name ASC
+      LIMIT $2
+    `;
+    
+    const monsters = await executeQuery(dbPool, query, [habitat, limit]);
+    
+    logger.info(`getMonsterByHabitat returning ${monsters.length} monsters for habitat "${habitat}"`);
+    
+    // Format the response
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          monsters: monsters.map(monster => ({
+            id: monster.monster_id,
+            name: monster.name,
+            category: monster.category,
+            habitat: monster.habitat,
+            rarity: monster.rarity,
+            powers: {
+              primary: monster.primary_power,
+              secondary: monster.secondary_power,
+              special: monster.special_ability
+            }
+          })),
+          habitat: habitat,
+          count: monsters.length
+        })
+      }]
+    };
+  } catch (error) {
+    logger.error(`Error in getMonsterByHabitat: ${error.message}`);
+    logger.error(error.stack);
+    throw new Error(`Failed to retrieve monsters by habitat: ${error.message}`);
+  }
+}
+
+/**
+ * Get a monster by its name (partial match)
+ * 
+ * @param {Object} params - Tool parameters
+ * @param {string} params.name - Name of the monster to search for (can be partial)
+ * @returns {Promise<Object>} Monster information if found
+ */
+export async function getMonsterByName(params) {
+  try {
+    if (!dbPool) {
+      throw new Error('Database pool not initialized. Call initialize() first.');
+    }
+    
+    logger.info(`getMonsterByName called with params: ${JSON.stringify(params)}`);
+    
+    const { name } = params;
+    
+    if (!name) {
+      throw new Error('Monster name is required');
+    }
+    
+    // Simple partial match query (case insensitive)
+    const query = `
+      SELECT 
+        m.monster_id,
+        m.name,
+        m.category,
+        m.habitat,
+        m.rarity,
+        m.primary_power,
+        m.secondary_power,
+        m.special_ability
+      FROM 
+        monsters m
+      WHERE 
+        LOWER(m.name) LIKE LOWER($1)
+      ORDER BY
+        m.name ASC
+      LIMIT 5
+    `;
+    
+    const monsters = await executeQuery(dbPool, query, [`%${name}%`]);
+    
+    if (monsters.length === 0) {
+      logger.info(`No monsters found with name: ${name}`);
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            found: false,
+            message: `No monsters found with name: ${name}`
+          })
+        }]
+      };
+    }
+    
+    // Format the response for the matches
+    logger.info(`Found ${monsters.length} monsters matching name: ${name}`);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          found: true,
+          count: monsters.length,
+          monsters: monsters.map(monster => ({
+            id: monster.monster_id,
+            name: monster.name,
+            category: monster.category,
+            habitat: monster.habitat,
+            rarity: monster.rarity,
+            powers: {
+              primary: monster.primary_power,
+              secondary: monster.secondary_power,
+              special: monster.special_ability
+            }
+          }))
+        })
+      }]
+    };
+  } catch (error) {
+    logger.error(`Error in getMonsterByName: ${error.message}`);
+    logger.error(error.stack);
+    throw new Error(`Failed to retrieve monster by name: ${error.message}`);
+  }
+}

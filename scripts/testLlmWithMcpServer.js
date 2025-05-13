@@ -83,69 +83,74 @@ const agent = createReactAgent({ llm: model, tools });
 
 // Natural language query examples
 const queries = [
-  "What monsters live in the Volcanic Mountains?",
   "Tell me about the monster called Abyssalurk",
-  "Which monsters are rare?"
+  "What monsters live in the Volcanic Mountains?",
+  "What monsters can be found in volcanic habitats?" // New test case for habitat matching
 ];
 
-// Select a query to test
-const userQuery = queries[0]; // Change index to test different queries
+// System message for the LLM
+const systemMessage = `You are a helpful assistant that can explore the RAGmonsters database using specialized tools.
 
-// Create explicit messages with system message
-const messages = [
-  {
-    role: "system",
-    content: `You are a helpful assistant that can explore the RAGmonsters database using specialized tools.
-
-You have access to the following tools:
-- getMonsters: Get a list of monsters with optional filtering, sorting, and pagination
-- getMonsterById: Get detailed information about a specific monster by ID
-
+You have access to the tools I give you with the request.
 When users ask about monsters, use these tools to provide accurate information.
 Always format your responses in a user-friendly way with proper formatting and organization.
 If you need to show multiple monsters, consider using a numbered or bulleted list.
-`
-  },
-  {
-    role: "user",
-    content: userQuery
-  }
-];
 
+`;
 
 // Main function to run the test
 async function main() {
   try {
-    // Use the agent to process the query and execute using MCP tools
-    logger.info(`Processing query: "${userQuery}"`);
-    logger.info("Sending request to model with system message...");
-    
-    const response = await agent.invoke({
-      messages: messages,
-    });
-    
-    // Log the final answer
-    const lastMessage = response?.messages?.[response.messages.length - 1]?.content ?? "No answer";
-    logger.info("LLM Response:");
-    logger.info(lastMessage);
-    
-    // Extract and log any tool calls that were made
-    const toolCalls = response.messages
-      .filter(msg => msg.tool_calls && msg.tool_calls.length > 0)
-      .flatMap(msg => msg.tool_calls);
-    
-    if (toolCalls.length > 0) {
-      logger.info(`The LLM made ${toolCalls.length} tool calls:`);
-      toolCalls.forEach((call, index) => {
-        logger.info(`Tool Call #${index + 1}: ${JSON.stringify(call)}`);
-        logger.info(`Tool Call #${index + 1}: ${call?.name}`);
-        logger.info(`Arguments: ${JSON.stringify(call?.args)}`);
+    // Process each query sequentially
+    for (let i = 0; i < queries.length; i++) {
+      const userQuery = queries[i];
+      logger.info(`\n\n=========== TEST QUERY ${i + 1}/${queries.length} ===========`);
+      logger.info(`Processing query: "${userQuery}"`);
+      logger.info("Sending request to model with system message...");
+      
+      // Create messages for this query
+      const messages = [
+        {
+          role: "system",
+          content: systemMessage
+        },
+        {
+          role: "user",
+          content: userQuery
+        }
+      ];
+      
+      const response = await agent.invoke({
+        messages: messages,
       });
-    } else {
-      logger.info("The LLM did not make any tool calls.");
+      
+      // Log the final answer
+      const lastMessage = response?.messages?.[response.messages.length - 1]?.content ?? "No answer";
+      logger.info(`LLM Response for query ${i + 1}:`);
+      logger.info(lastMessage);
+      
+      // Extract and log any tool calls that were made
+      const toolCalls = response.messages
+        .filter(msg => msg.tool_calls && msg.tool_calls.length > 0)
+        .flatMap(msg => msg.tool_calls);
+      
+      if (toolCalls.length > 0) {
+        logger.info(`The LLM made ${toolCalls.length} tool calls:`);
+        toolCalls.forEach((call, index) => {
+          logger.info(`Tool Call #${index + 1}: ${call?.name}`);
+          logger.info(`Arguments: ${JSON.stringify(call?.args)}`);
+        });
+      } else {
+        logger.info("The LLM did not make any tool calls.");
+      }
+      
+      logger.info(`Test ${i + 1} completed successfully!`);
+      
+      // Add a small delay between tests
+      if (i < queries.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
-    
-    logger.info("Test completed successfully!");
   } catch (error) {
     logger.error(`Error running test: ${error.message}`);
     logger.error(error.stack);
@@ -153,7 +158,7 @@ async function main() {
     // Cleanup
     logger.info("Closing MCP client connection");
     await mcpClient.close();
-    logger.info("Test ended");
+    logger.info("All tests completed.");
   }
 }
 
