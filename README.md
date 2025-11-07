@@ -4,6 +4,10 @@
 
 This repository demonstrates a more advanced approach to integrating Large Language Models (LLMs) with databases using the Model Context Protocol (MCP). While generic MCP PostgreSQL servers allow LLMs to explore databases through raw SQL queries, this project takes a different approach by creating a **custom MCP server** that provides a domain-specific API tailored to the application's needs.
 
+<a href="https://glama.ai/mcp/servers/@LostInBrittany/RAGmonsters-mcp-pg">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@LostInBrittany/RAGmonsters-mcp-pg/badge" alt="RAGmonsters Custom PostgreSQL Server MCP server" />
+</a>
+
 This implementation uses **FastMCP**, a high-performance implementation of the Model Context Protocol, which provides improved efficiency and reliability for tool-based interactions with LLMs.
 
 This project uses the [RAGmonsters](https://github.com/LostInBrittany/RAGmonsters) dataset as its foundation. RAGmonsters is an open-source project that provides a rich, fictional dataset of monsters with various attributes, abilities, and relationships - specifically designed for demonstrating and testing Retrieval-Augmented Generation (RAG) systems.
