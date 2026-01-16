@@ -32,7 +32,7 @@ const rootDir = path.join(__dirname, '..');
 async function createClient() {
   // Create a transport that communicates with the server via STDIO
   logger.info('Creating STDIO transport to communicate with the server');
-  
+
   const transport = new StdioClientTransport({
     command: "node",
     args: ["./src/mcp-server/index.js"],
@@ -48,7 +48,7 @@ async function createClient() {
       timeout: 10000  // Increase timeout to 120 seconds
     }
   );
-  
+
   await client.connect(transport);
   logger.info("Client connected to server")
   return client;
@@ -60,20 +60,20 @@ async function createClient() {
  */
 async function testGetMonsters(client) {
   logger.info('--- Testing getMonsters tool ---');
-  
+
   try {
     // Get all monsters with default parameters (limit 10)
     logger.info('Getting monsters (default parameters)');
     const monsters = await client.callTool({
-      name: 'getMonsters', 
+      name: 'getMonsters',
       arguments: {}
     });
     logger.info(`Retrieved ${monsters.content.length} monsters`);
-    
+
     // Log the first monster
     logger.info('First monster');
     logger.logObject('Monster details', monsters.content[0].text);
-    
+
     // Test filtering by habitat
     logger.info('Filtering by habitat (Volcanic Mountains)');
     const volcanicMonsters = await client.callTool({
@@ -84,7 +84,7 @@ async function testGetMonsters(client) {
     });
     logger.info(`Retrieved ${volcanicMonsters.content.length} monsters from Volcanic Mountains`);
     logger.info(`Monster names: ${JSON.parse(volcanicMonsters.content[0].text).name}`);
-    
+
     // Test sorting
     logger.info('Sorting by name in descending order');
     const sortedMonsters = await client.callTool({
@@ -95,7 +95,7 @@ async function testGetMonsters(client) {
       }
     });
     logger.info(`Top 5 monsters sorted by name (desc): ${sortedMonsters.content.map(m => JSON.parse(m.text).name).join(', ')}`);
-    
+
   } catch (error) {
     logger.error(`Error testing getMonsters: ${error.message}`);
     logger.error(error.stack);
@@ -108,7 +108,7 @@ async function testGetMonsters(client) {
  */
 async function testGetMonsterById(client) {
   logger.info('--- Testing getMonsterById tool ---');
-  
+
   try {
     // First get a monster ID from the getMonsters tool
     logger.info('Getting a monster ID for detailed lookup');
@@ -119,42 +119,99 @@ async function testGetMonsterById(client) {
       }
     });
     const monsterId = JSON.parse(monsters.content[0].text).id;
-    
+
     logger.info(`Getting details for monster ID ${monsterId} (${JSON.parse(monsters.content[0].text).name})`);
     const monsterDetails = await client.callTool({
       name: 'getMonsterById',
       arguments: { monsterId }
     });
-    
+
+    // Parse the response
+    const responseText = monsterDetails.content[0].text;
+    const responseJson = JSON.parse(responseText);
+    const monsterData = responseJson.data; // Structure change due to Principle 6
+
     // Log selected details
     logger.info('Monster details:');
-    logger.info(JSON.stringify(monsterDetails.content[0].text));
-    logger.info(`Name: ${JSON.parse(monsterDetails.content[0].text).name}`);
-    logger.info(`Category: ${JSON.parse(monsterDetails.content[0].text).category}`);
-    logger.info(`Habitat: ${JSON.parse(monsterDetails.content[0].text).habitat}`);
-    logger.info(`Powers: ${JSON.parse(monsterDetails.content[0].text).powers.primary}, ${JSON.parse(monsterDetails.content[0].text).powers.secondary}, ${JSON.parse(monsterDetails.content[0].text).powers.special}`);
-    
+    logger.info(responseText);
+
+    logger.info(`Name: ${monsterData.name}`);
+    logger.info(`Category: ${monsterData.category}`);
+    logger.info(`Habitat: ${monsterData.habitat}`);
+
+    const powers = monsterData.powers || {};
+    logger.info(`Powers: ${powers.primary}, ${powers.secondary}, ${powers.special}`);
+
     // Log keywords and abilities
-    logger.info('Keywords and Abilities:');
-    JSON.parse(monsterDetails.content[0].text).keywords.forEach(keyword => {
-      logger.info(`- ${keyword.name} (Rating: ${keyword.rating})`);
-      keyword.abilities.forEach(ability => {
-        logger.info(`  • ${ability.name} (${ability.mastery})`);
+    if (monsterData.keywords) {
+      logger.info('Keywords and Abilities:');
+      monsterData.keywords.forEach(keyword => {
+        logger.info(`- ${keyword.name} (Rating: ${keyword.rating})`);
+        if (keyword.abilities) {
+          keyword.abilities.forEach(ability => {
+            logger.info(`  • ${ability.name} (${ability.mastery})`);
+          });
+        }
       });
-    });
-    
+    }
+
     // Log strengths and weaknesses
-    logger.info('Strengths:');
-    JSON.parse(monsterDetails.content[0].text).strengths.forEach(strength => {
-      logger.info(`- Strong against ${strength.target} (${strength.modifier})`);
-    });
-    
-    logger.info('Weaknesses:');
-    JSON.parse(monsterDetails.content[0].text).weaknesses.forEach(weakness => {
-      logger.info(`- Weak against ${weakness.target} (${weakness.modifier})`);
-    });
+    if (monsterData.strengths) {
+      logger.info('Strengths:');
+      monsterData.strengths.forEach(strength => {
+        logger.info(`- Strong against ${strength.target} (${strength.modifier})`);
+      });
+    }
+
+    if (monsterData.weaknesses) {
+      logger.info('Weaknesses:');
+      monsterData.weaknesses.forEach(weakness => {
+        logger.info(`- Weak against ${weakness.target} (${weakness.modifier})`);
+      });
+    }
   } catch (error) {
     logger.error(`Error testing getMonsterById: ${error.message}`);
+    logger.error(error.stack);
+  }
+}
+
+/**
+ * Test metadata tools (categories, rarities, biomes)
+ * @param {Client} client - The MCP client
+ */
+async function testMetadataTools(client) {
+  logger.info('--- Testing Metadata Tools ---');
+
+  try {
+    // Test getCategories
+    logger.info('Testing getCategories...');
+    const categories = await client.callTool({ name: 'getCategories', arguments: {} });
+    logger.info('Categories: ' + categories.content[0].text);
+
+    // Test getRarities
+    logger.info('Testing getRarities...');
+    const rarities = await client.callTool({ name: 'getRarities', arguments: {} });
+    logger.info('Rarities: ' + rarities.content[0].text);
+
+    // Test getBiomes
+    logger.info('Testing getBiomes...');
+    const biomes = await client.callTool({ name: 'getBiomes', arguments: {} });
+    logger.info('Biomes: ' + biomes.content[0].text);
+
+    // Test getMonsters with biome filter if biomes exist
+    const biomeList = JSON.parse(biomes.content[0].text);
+    if (Array.isArray(biomeList) && biomeList.length > 0) {
+      const testBiome = biomeList[0];
+      logger.info(`Testing getMonsters with biome filter: ${testBiome}`);
+      const monsters = await client.callTool({
+        name: 'getMonsters',
+        arguments: { filters: { biome: testBiome } }
+      });
+      logger.info(`Found monsters in biome ${testBiome}: ${monsters.content[0].text.substring(0, 100)}...`);
+    }
+
+  } catch (error) {
+    logger.error(`Error testing metadata tools: ${error.message}`);
     logger.error(error.stack);
   }
 }
@@ -165,7 +222,7 @@ async function testGetMonsterById(client) {
 async function main() {
   try {
     logger.info('=== Starting MCP Client Tests ===');
-    
+
     // Create the MCP client
     const client = await createClient();
 
@@ -176,7 +233,7 @@ async function main() {
       const tools = await client.listTools();
       console.log('listTools() returned:', JSON.stringify(tools, null, 2));
       logger.logObject('Available tools', tools);
-      
+
       // Check if tools array exists and has items
       if (!tools || !tools.tools || tools.tools.length === 0) {
         console.error('WARNING: No tools were returned from the server!');
@@ -197,13 +254,14 @@ async function main() {
     //  name: 'add',
     //  arguments: { a: 10.0, b: 20.0 }
     //});
-  
+
     //logger.info(`Result: ${result.content[0].text}`);
 
     // Test the tools
     await testGetMonsters(client);
     await testGetMonsterById(client);
-    
+    await testMetadataTools(client); // Added new test function
+
     logger.info('All tests completed successfully!');
   } catch (error) {
     logger.error(`Error running tests: ${error.message}`);

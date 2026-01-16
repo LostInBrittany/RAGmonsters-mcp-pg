@@ -162,20 +162,44 @@ LLM: (Uses our domain-specific API)
 6. Start the server: `npm start`
 
 ### Available Tools
-
-The MCP server provides the following tools:
-
-1. **getMonsters** - Get a list of monsters with optional filtering, sorting, and pagination
-   - Parameters: filters (category, habitat, rarity), sort (field, direction), limit, offset
-   - Returns: Array of monster objects with basic information
-
-2. **getMonsterById** - Get detailed information about a specific monster by ID
-   - Parameters: monsterId
-   - Returns: Detailed monster object with all attributes, powers, abilities, strengths, and weaknesses
-
-3. **add** - Simple utility to add two numbers (for testing)
-   - Parameters: a, b
-   - Returns: Sum of the two numbers
+ 
+ The MCP server provides the following tools:
+ 
+ 1. **getMonsters** - Get a list of monsters with optional filtering, sorting, and pagination
+    - Parameters: filters (category, habitat, biome, rarity), sort (field, direction), limit, offset
+    - Returns: Array of monster objects with basic information
+ 
+ 2. **getMonsterById** - Get detailed information about a specific monster by ID
+    - Parameters: monsterId
+    - Returns: Detailed monster object with all attributes, powers, abilities, strengths, and weaknesses
+ 
+ 3. **getHabitats** - Get a list of all available habitats in the database
+    - Parameters: None
+    - Returns: Array of habitat names
+ 
+ 4. **getCategories** - Get a list of all available categories in the database
+    - Parameters: None
+    - Returns: Array of category names
+ 
+ 5. **getBiomes** - Get a list of all available biomes in the database
+    - Parameters: None
+    - Returns: Array of biome names
+ 
+ 6. **getRarities** - Get a list of all available rarities in the database
+    - Parameters: None
+    - Returns: Array of rarity names
+ 
+ 7. **getMonsterByHabitat** - Get monsters by habitat (exact match only)
+    - Parameters: habitat
+    - Returns: Array of monster objects matching the habitat
+ 
+ 8. **getMonsterByName** - Get monsters by name (partial match)
+    - Parameters: name
+    - Returns: Array of monster objects matching the name
+ 
+ 9. **add** - Simple utility to add two numbers (for testing)
+    - Parameters: a, b
+    - Returns: Sum of the two numbers
 
 ### LLM Integration Architecture
 
@@ -239,7 +263,54 @@ LLM_API_URL=https://api.openai.com/v1
 
 The application supports any OpenAI-compatible API, including self-hosted models and alternative providers.
 
-## Deploying to Clever Cloud
+## Implementing Smarter MCP Design Principles
+ 
+ This server implements the "Smarter MCP" design principles:
+ 
+ ### 1. Narrow, Named Capabilities
+ Tools are scoped to specific tasks:
+ - `getMonsters`: For search and discovery (returning summaries).
+ - `getMonsterById`: For retrieving deep details.
+ 
+ ### 2. Stable Types In and Out
+ We enforce strict types using Zod schemas:
+ - **Enums**: `category` and `rarity` are restricted to known values (e.g., 'Aquatic', 'Rare') rather than open strings.
+ - **Resources**: The `ragmonsters://schema` resource exposes the data shape to the LLM.
+ 
+ ### 3. Deterministic Behavior
+ - **Sorting**: All queries use deterministic tie-breakers (e.g., sorting by name also sorts by ID) to ensure consistent pagination.
+ - **Prompts**: The `ragmonsters://answering-style` prompt guides the LLM to answer consistently.
+ 
+ ### 4. Least Privilege
+ - **Explicit Columns**: Database queries select specific columns (`name`, `category`, etc.) rather than `SELECT *`, preventing accidental exposure of internal data.
+ 
+ ### 5. Guardrails at the Edge
+ - **Input Validation**: Limits are capped (max 50) and validated by Zod schema.
+ - **Sanitization**: String inputs are handled via parameterized queries to prevent injection.
+ 
+ ### 6. Human-Readable by Design
+ - **Structured Summaries**: Responses include a natural-language `summary` field (e.g., "Found 3 Aquatic monsters...") alongside the raw JSON data.
+ 
+ ### 7. Explainability as a Feature
+ - **Metadata**: Responses include `source` ("RAGmonsters DB") and `policy` fields to explain provenance.
+ - **Next Steps**: The API returns `next` hints (e.g., suggesting `getMonsterById`) to guide the agent's next action.
+ 
+
+ ## Implementing Capability Modeling
+
+ We have also implemented the "Capability Modeling" best practices to clearly separate Actions (Tools), Knowledge (Resources), and Guidance (Prompts).
+
+ ### 1. Tools: The Actions
+ - `compareMonsters(nameA, nameB)`: A dedicated tool for checking two entities side-by-side. Provides visual comparison data and a textual summary.
+
+ ### 2. Resources: The Knowledge
+ - `ragmonsters://docs/query-tips`: Static documentation resource with querying advice.
+ - `ragmonsters://images/{monsterId}`: Template resource simulating access to binary assets (monster artwork).
+
+ ### 3. Prompts: The Guidance
+ - `disambiguation`: A prompt template to guide the LLM on how to handle ambiguous search results (e.g., "Ask for clarification instead of guessing").
+
+ ## Deploying to Clever Cloud
 
 ### Using the Clever Cloud CLI
 
