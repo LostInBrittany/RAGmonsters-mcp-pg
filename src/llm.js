@@ -10,7 +10,7 @@ dotenv.config();
 // Initialize OpenAI client
 const model = new ChatOpenAI({
   modelName: process.env.LLM_API_MODEL || 'gpt-5-mini',
-  openAIApiKey: process.env.LLM_API_KEY,
+  apiKey: process.env.LLM_API_KEY,
   temperature: 1,
   configuration: {
     baseURL: process.env.LLM_API_URL || 'https://api.openai.com/v1',
