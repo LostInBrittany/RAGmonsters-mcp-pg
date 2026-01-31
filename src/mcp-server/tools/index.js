@@ -9,11 +9,34 @@ import logger from '../utils/logger.js';
 export { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getSubcategories, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools };
 
 /**
+ * Create a logged wrapper for a tool function
+ * @param {string} toolName - Name of the tool
+ * @param {Function} fn - The tool function to wrap
+ * @returns {Function} Wrapped function with logging
+ */
+function withLogging(toolName, fn) {
+  return async (params) => {
+    logger.info(`[TOOL CALL] ${toolName} called with params: ${JSON.stringify(params)}`);
+    const startTime = Date.now();
+    try {
+      const result = await fn(params);
+      const duration = Date.now() - startTime;
+      logger.info(`[TOOL RESULT] ${toolName} completed in ${duration}ms`);
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error(`[TOOL ERROR] ${toolName} failed after ${duration}ms: ${error.message}`);
+      throw error;
+    }
+  };
+}
+
+/**
  * Register all tools with an MCP server
  * @param {Object} server - The MCP server instance
  */
 export function registerToolsWithServer(server) {
-  // Register monster tools
+  // Register monster tools with logging wrappers
   server.addTool({
     name: 'getMonsters',
     description: 'Get a list of monsters with optional filtering, sorting, and pagination',
@@ -37,7 +60,7 @@ export function registerToolsWithServer(server) {
 
       limit: z.number().int().min(1).optional().describe('Maximum number of results to return (default: 10, max: 50)')
     }),
-    execute: getMonsters
+    execute: withLogging('getMonsters', getMonsters)
   });
 
   server.addTool({
@@ -46,35 +69,35 @@ export function registerToolsWithServer(server) {
     parameters: z.object({
       monsterId: z.number().describe('ID of the monster to retrieve')
     }),
-    execute: getMonsterById
+    execute: withLogging('getMonsterById', getMonsterById)
   });
 
   server.addTool({
     name: 'getHabitats',
     description: 'Get a list of all available habitats in the database',
     parameters: z.object({}),
-    execute: getHabitats
+    execute: withLogging('getHabitats', getHabitats)
   });
 
   server.addTool({
     name: 'getCategories',
     description: 'Get a list of all available categories in the database',
     parameters: z.object({}),
-    execute: getCategories
+    execute: withLogging('getCategories', getCategories)
   });
 
   server.addTool({
     name: 'getBiomes',
     description: 'Get a list of all available biomes in the database',
     parameters: z.object({}),
-    execute: getBiomes
+    execute: withLogging('getBiomes', getBiomes)
   });
 
   server.addTool({
     name: 'getRarities',
     description: 'Get a list of all available rarities in the database',
     parameters: z.object({}),
-    execute: getRarities
+    execute: withLogging('getRarities', getRarities)
   });
 
   server.addTool({
@@ -83,7 +106,7 @@ export function registerToolsWithServer(server) {
     parameters: z.object({
       categoryName: z.string().optional().describe('Optional category name to filter subcategories')
     }),
-    execute: getSubcategories
+    execute: withLogging('getSubcategories', getSubcategories)
   });
 
   server.addTool({
@@ -93,7 +116,7 @@ export function registerToolsWithServer(server) {
       habitat: z.string().describe('Exact habitat name (must match exactly). For best results, first call getHabitats to get a list of available habitats, then find the most appropriate one to use with this tool.'),
       limit: z.number().optional().describe('Maximum number of results to return (default: 10)')
     }),
-    execute: getMonsterByHabitat
+    execute: withLogging('getMonsterByHabitat', getMonsterByHabitat)
   });
 
   server.addTool({
@@ -102,7 +125,7 @@ export function registerToolsWithServer(server) {
     parameters: z.object({
       name: z.string().describe('Name of the monster to search for (can be partial)')
     }),
-    execute: getMonsterByName
+    execute: withLogging('getMonsterByName', getMonsterByName)
   });
 
   server.addTool({
@@ -112,7 +135,7 @@ export function registerToolsWithServer(server) {
       monsterNameA: z.string().describe('Name of the first monster (exact or partial match if implemented)'),
       monsterNameB: z.string().describe('Name of the second monster (exact or partial match if implemented)')
     }),
-    execute: compareMonsters
+    execute: withLogging('compareMonsters', compareMonsters)
   });
 
   logger.info(`Registered tools with the MCP server`);
