@@ -9,9 +9,9 @@ dotenv.config();
 
 // Initialize OpenAI client
 const model = new ChatOpenAI({
-  modelName: process.env.LLM_API_MODEL || 'gpt-4o-mini',
+  modelName: process.env.LLM_API_MODEL || 'gpt-5-mini',
   openAIApiKey: process.env.LLM_API_KEY,
-  temperature: 0.2,
+  temperature: 1,
   configuration: {
     baseURL: process.env.LLM_API_URL || 'https://api.openai.com/v1',
   }
@@ -25,7 +25,7 @@ const model = new ChatOpenAI({
 export async function createAgent(mcpClient) {
   // Convert MCP tools to LangChain format
   const tools = await loadMcpTools(null, mcpClient);
-  
+
   // Create the LangChain ReAct agent
   return createReactAgent({ llm: model, tools });
 }
@@ -99,27 +99,27 @@ export function formatResponse(response) {
   // Extract the final answer (last message)
   logger.info('Extracting final answer from response');
 
-   // The response structure from LangChain's ReAct agent has an allMessages array
-   if (response.allMessages && response.allMessages.length > 0) {
+  // The response structure from LangChain's ReAct agent has an allMessages array
+  if (response.allMessages && response.allMessages.length > 0) {
     // Get the last message in the allMessages array
     const lastMessage = response.allMessages[response.allMessages.length - 1];
-    
+
     // Extract the content from the kwargs object
     if (lastMessage.kwargs && lastMessage.kwargs.content) {
       return lastMessage.kwargs.content;
     }
-    
+
     // Fallback if the structure is different
     if (lastMessage.content) {
       return lastMessage.content;
     }
   }
-  
+
   // Fallback for message directly in the response
   if (response.message && response.message.kwargs && response.message.kwargs.content) {
     return response.message.kwargs.content;
   }
-  
+
   // Final fallback
   logger.error('Could not extract content from response', JSON.stringify(response));
   return 'Sorry, I could not process your request at this time.';

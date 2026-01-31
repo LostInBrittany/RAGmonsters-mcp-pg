@@ -24,13 +24,16 @@ export async function getCategories() {
   try {
     if (!dbPool) throw new Error('Database pool not initialized');
 
-    const query = 'SELECT DISTINCT category FROM monsters WHERE category IS NOT NULL ORDER BY category ASC';
+    const query = 'SELECT category_id, category_name FROM ragmonsters.categories ORDER BY category_name ASC';
     const result = await executeQuery(dbPool, query);
 
     return {
       content: [{
         type: 'text',
-        text: JSON.stringify(result.map(r => r.category))
+        text: JSON.stringify(result.map(r => ({
+          id: r.category_id,
+          name: r.category_name
+        })))
       }]
     };
   } catch (error) {
@@ -47,7 +50,7 @@ export async function getRarities() {
   try {
     if (!dbPool) throw new Error('Database pool not initialized');
 
-    const query = 'SELECT DISTINCT rarity FROM monsters WHERE rarity IS NOT NULL ORDER BY rarity ASC';
+    const query = 'SELECT DISTINCT rarity FROM ragmonsters.monsters WHERE rarity IS NOT NULL ORDER BY rarity ASC';
     const result = await executeQuery(dbPool, query);
 
     return {
@@ -63,6 +66,58 @@ export async function getRarities() {
 }
 
 /**
+ * Get a list of subcategories with their parent categories
+ * @param {Object} [params] - Optional parameters
+ * @param {string} [params.categoryName] - Filter by category name
+ * @returns {Promise<Object>} List of subcategories
+ */
+export async function getSubcategories(params = {}) {
+  try {
+    if (!dbPool) throw new Error('Database pool not initialized');
+
+    let query = `
+      SELECT 
+        s.subcategory_id, 
+        s.subcategory_name, 
+        c.category_id,
+        c.category_name
+      FROM 
+        ragmonsters.subcategories s
+      JOIN 
+        ragmonsters.categories c ON s.category_id = c.category_id
+    `;
+
+    const queryParams = [];
+
+    if (params.categoryName) {
+      queryParams.push(params.categoryName);
+      query += ` WHERE c.category_name = $1`;
+    }
+
+    query += ` ORDER BY c.category_name ASC, s.subcategory_name ASC`;
+
+    const result = await executeQuery(dbPool, query, queryParams);
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify(result.map(r => ({
+          id: r.subcategory_id,
+          name: r.subcategory_name,
+          category: {
+            id: r.category_id,
+            name: r.category_name
+          }
+        })))
+      }]
+    };
+  } catch (error) {
+    logger.error(`Error in getSubcategories: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
  * Get a list of distinct biomes
  * @returns {Promise<Object>} List of biomes
  */
@@ -70,7 +125,7 @@ export async function getBiomes() {
   try {
     if (!dbPool) throw new Error('Database pool not initialized');
 
-    const query = 'SELECT DISTINCT biome FROM monsters WHERE biome IS NOT NULL ORDER BY biome ASC';
+    const query = 'SELECT DISTINCT biome FROM ragmonsters.monsters WHERE biome IS NOT NULL ORDER BY biome ASC';
     const result = await executeQuery(dbPool, query);
 
     return {
@@ -118,14 +173,20 @@ export async function getMonsters(params = {}) {
       SELECT 
         m.monster_id,
         m.name,
-        m.category,
+        c.category_name,
+        s.subcategory_name,
         m.habitat,
+        m.biome,
         m.rarity,
         m.primary_power,
         m.secondary_power,
         m.special_ability
       FROM 
-        monsters m
+        ragmonsters.monsters m
+      JOIN 
+        ragmonsters.subcategories s ON m.subcategory_id = s.subcategory_id
+      JOIN 
+        ragmonsters.categories c ON s.category_id = c.category_id
       WHERE 1=1
     `;
 
@@ -135,7 +196,7 @@ export async function getMonsters(params = {}) {
     // Add filters
     if (filters.category) {
       queryParams.push(filters.category);
-      query += ` AND m.category = $${queryParams.length}`;
+      query += ` AND c.category_name = $${queryParams.length}`;
     }
 
     if (filters.habitat) {
@@ -189,7 +250,8 @@ export async function getMonsters(params = {}) {
           data: monsters.map(monster => ({
             id: monster.monster_id,
             name: monster.name,
-            category: monster.category,
+            category: monster.category_name,
+            subcategory: monster.subcategory_name,
             habitat: monster.habitat,
             biome: monster.biome,
             rarity: monster.rarity,
@@ -239,15 +301,20 @@ export async function getMonsterById(params) {
     // Get basic monster information
     // Principle 4: Least Privilege - Explicit columns
     const monsterQuery = `
-    SELECT
-    m.monster_id, m.name, m.category, m.habitat, m.biome, m.rarity, m.discovery,
-      m.height, m.weight, m.appearance, m.primary_power, m.secondary_power,
-      m.special_ability, m.weakness, m.behavior_ecology, m.notable_specimens
-    FROM 
-        monsters m
-    WHERE
-    m.monster_id = $1
-      `;
+      SELECT
+        m.monster_id, m.name, c.category_name, s.subcategory_name, 
+        m.habitat, m.biome, m.rarity, m.discovery,
+        m.height, m.weight, m.appearance, m.primary_power, m.secondary_power,
+        m.special_ability, m.weakness, m.behavior_ecology, m.notable_specimens
+      FROM 
+        ragmonsters.monsters m
+      JOIN 
+        ragmonsters.subcategories s ON m.subcategory_id = s.subcategory_id
+      JOIN 
+        ragmonsters.categories c ON s.category_id = c.category_id
+      WHERE
+        m.monster_id = $1
+    `;
 
     const monsters = await executeQuery(dbPool, monsterQuery, [monsterId]);
 
@@ -265,11 +332,11 @@ export async function getMonsterById(params) {
         a.ability_name,
         a.mastery_value
       FROM 
-        questworlds_stats qs
+        ragmonsters.questworlds_stats qs
       JOIN 
-        keywords k ON qs.stats_id = k.stats_id
+        ragmonsters.keywords k ON qs.stats_id = k.stats_id
       JOIN 
-        abilities a ON k.keyword_id = a.keyword_id
+        ragmonsters.abilities a ON k.keyword_id = a.keyword_id
       WHERE 
         qs.monster_id = $1
       ORDER BY 
@@ -284,9 +351,9 @@ export async function getMonsterById(params) {
         f.flaw_name,
         f.rating
       FROM 
-        questworlds_stats qs
+        ragmonsters.questworlds_stats qs
       JOIN 
-        flaws f ON qs.stats_id = f.stats_id
+        ragmonsters.flaws f ON qs.stats_id = f.stats_id
       WHERE 
         qs.monster_id = $1
       ORDER BY 
@@ -301,7 +368,7 @@ export async function getMonsterById(params) {
         target_name,
         modifier
       FROM 
-        augments
+        ragmonsters.augments
       WHERE 
         monster_id = $1
     `;
@@ -314,7 +381,7 @@ export async function getMonsterById(params) {
         target_name,
         modifier
       FROM 
-        hindrances
+        ragmonsters.hindrances
       WHERE 
         monster_id = $1
     `;
@@ -347,7 +414,8 @@ export async function getMonsterById(params) {
           data: {
             id: monster.monster_id,
             name: monster.name,
-            category: monster.category,
+            category: monster.category_name,
+            subcategory: monster.subcategory_name,
             habitat: monster.habitat,
             biome: monster.biome,
             rarity: monster.rarity,
@@ -376,7 +444,7 @@ export async function getMonsterById(params) {
               modifier: weakness.modifier
             }))
           },
-          summary: `${monster.name} is a ${monster.rarity} ${monster.category} monster found in ${monster.habitat}.`,
+          summary: `${monster.name} is a ${monster.rarity} ${monster.subcategory_name} (${monster.category_name}) monster found in ${monster.habitat}.`,
           source: "RAGmonsters DB",
           policy: "Detailed specimen data from field research logs."
         })
@@ -405,7 +473,7 @@ export async function getHabitats() {
     // Query to get distinct habitats
     const query = `
       SELECT DISTINCT habitat
-      FROM monsters
+      FROM ragmonsters.monsters
       WHERE habitat IS NOT NULL
       ORDER BY habitat ASC
     `;
@@ -458,14 +526,19 @@ export async function getMonsterByHabitat(params) {
       SELECT 
         m.monster_id,
         m.name,
-        m.category,
+        c.category_name,
+        s.subcategory_name,
         m.habitat,
         m.rarity,
         m.primary_power,
         m.secondary_power,
         m.special_ability
       FROM 
-        monsters m
+        ragmonsters.monsters m
+      JOIN 
+        ragmonsters.subcategories s ON m.subcategory_id = s.subcategory_id
+      JOIN 
+        ragmonsters.categories c ON s.category_id = c.category_id
       WHERE 
         m.habitat = $1
       ORDER BY 
@@ -485,7 +558,8 @@ export async function getMonsterByHabitat(params) {
           monsters: monsters.map(monster => ({
             id: monster.monster_id,
             name: monster.name,
-            category: monster.category,
+            category: monster.category_name,
+            subcategory: monster.subcategory_name,
             habitat: monster.habitat,
             rarity: monster.rarity,
             powers: {
@@ -532,14 +606,19 @@ export async function getMonsterByName(params) {
       SELECT 
         m.monster_id,
         m.name,
-        m.category,
+        c.category_name,
+        s.subcategory_name,
         m.habitat,
         m.rarity,
         m.primary_power,
         m.secondary_power,
         m.special_ability
       FROM 
-        monsters m
+        ragmonsters.monsters m
+      JOIN 
+        ragmonsters.subcategories s ON m.subcategory_id = s.subcategory_id
+      JOIN 
+        ragmonsters.categories c ON s.category_id = c.category_id
       WHERE 
         LOWER(m.name) LIKE LOWER($1)
       ORDER BY
@@ -574,7 +653,8 @@ export async function getMonsterByName(params) {
           monsters: monsters.map(monster => ({
             id: monster.monster_id,
             name: monster.name,
-            category: monster.category,
+            category: monster.category_name,
+            subcategory: monster.subcategory_name,
             habitat: monster.habitat,
             rarity: monster.rarity,
             powers: {
@@ -601,70 +681,78 @@ export async function getMonsterByName(params) {
  * @returns {Promise<Object>} Comparison report
  */
 export async function compareMonsters(params) {
-    try {
-        if (!dbPool) throw new Error('Database pool not initialized.');
+  try {
+    if (!dbPool) throw new Error('Database pool not initialized.');
 
-        const { monsterNameA, monsterNameB } = params;
-        if (!monsterNameA || !monsterNameB) {
-            throw new Error('Both monsterNameA and monsterNameB are required.');
-        }
+    const { monsterNameA, monsterNameB } = params;
+    if (!monsterNameA || !monsterNameB) {
+      throw new Error('Both monsterNameA and monsterNameB are required.');
+    }
 
-        // Query both monsters
-        const query = `
+    // Query both monsters
+    const query = `
       SELECT 
-        m.monster_id, m.name, m.category, m.habitat, m.rarity, 
+        m.monster_id, m.name, c.category_name, s.subcategory_name, 
+        m.habitat, m.rarity, 
         m.height, m.weight, 
         m.primary_power, m.secondary_power, m.special_ability
-      FROM monsters m
+      FROM ragmonsters.monsters m
+      JOIN ragmonsters.subcategories s ON m.subcategory_id = s.subcategory_id
+      JOIN ragmonsters.categories c ON s.category_id = c.category_id
       WHERE LOWER(m.name) IN (LOWER($1), LOWER($2))
     `;
 
-        const results = await executeQuery(dbPool, query, [monsterNameA, monsterNameB]);
+    const results = await executeQuery(dbPool, query, [monsterNameA, monsterNameB]);
 
-        // Map results to A and B
-        const monsterA = results.find(m => m.name.toLowerCase() === monsterNameA.toLowerCase());
-        const monsterB = results.find(m => m.name.toLowerCase() === monsterNameB.toLowerCase());
+    // Map results to A and B
+    const monsterA = results.find(m => m.name.toLowerCase() === monsterNameA.toLowerCase());
+    const monsterB = results.find(m => m.name.toLowerCase() === monsterNameB.toLowerCase());
 
-        if (!monsterA) throw new Error(`Monster '${monsterNameA}' not found.`);
-        if (!monsterB) throw new Error(`Monster '${monsterNameB}' not found.`);
+    if (!monsterA) throw new Error(`Monster '${monsterNameA}' not found.`);
+    if (!monsterB) throw new Error(`Monster '${monsterNameB}' not found.`);
 
-        // Build comparison
-        const comparison = {
-            monsters: [monsterA.name, monsterB.name],
-            comparison: {
-                category: {
-                    [monsterA.name]: monsterA.category,
-                    [monsterB.name]: monsterB.category,
-                    match: monsterA.category === monsterB.category
-                },
-                habitat: {
-                    [monsterA.name]: monsterA.habitat,
-                    [monsterB.name]: monsterB.habitat,
-                    match: monsterA.habitat === monsterB.habitat
-                },
-                rarity: {
-                    [monsterA.name]: monsterA.rarity,
-                    [monsterB.name]: monsterB.rarity,
-                    match: monsterA.rarity === monsterB.rarity
-                },
-                stats: {
-                    height: { [monsterA.name]: monsterA.height, [monsterB.name]: monsterB.height },
-                    weight: { [monsterA.name]: monsterA.weight, [monsterB.name]: monsterB.weight }
-                }
-            },
-            summary: `Comparison between ${monsterA.name} and ${monsterB.name}. They share ${monsterA.category === monsterB.category ? 'the same' : 'different'} categories.`,
-            source: "RAGmonsters DB",
-            next: [`getMonsterById({ monsterId: ${monsterA.monster_id} })`, `getMonsterById({ monsterId: ${monsterB.monster_id} })`]
-        };
+    // Build comparison
+    const comparison = {
+      monsters: [monsterA.name, monsterB.name],
+      comparison: {
+        category: {
+          [monsterA.name]: monsterA.category_name,
+          [monsterB.name]: monsterB.category_name,
+          match: monsterA.category_name === monsterB.category_name
+        },
+        subcategory: {
+          [monsterA.name]: monsterA.subcategory_name,
+          [monsterB.name]: monsterB.subcategory_name,
+          match: monsterA.subcategory_name === monsterB.subcategory_name
+        },
+        habitat: {
+          [monsterA.name]: monsterA.habitat,
+          [monsterB.name]: monsterB.habitat,
+          match: monsterA.habitat === monsterB.habitat
+        },
+        rarity: {
+          [monsterA.name]: monsterA.rarity,
+          [monsterB.name]: monsterB.rarity,
+          match: monsterA.rarity === monsterB.rarity
+        },
+        stats: {
+          height: { [monsterA.name]: monsterA.height, [monsterB.name]: monsterB.height },
+          weight: { [monsterA.name]: monsterA.weight, [monsterB.name]: monsterB.weight }
+        }
+      },
+      summary: `Comparison between ${monsterA.name} and ${monsterB.name}. They are both ${monsterA.category_name === monsterB.category_name ? 'in the same category' : 'in different categories'} (${monsterA.category_name} vs ${monsterB.category_name}).`,
+      source: "RAGmonsters DB",
+      next: [`getMonsterById({ monsterId: ${monsterA.monster_id} })`, `getMonsterById({ monsterId: ${monsterB.monster_id} })`]
+    };
 
-        return {
-            content: [{
-                type: 'text',
-                text: JSON.stringify(comparison)
-            }]
-        };
-    } catch (error) {
-        logger.error(`Error in compareMonsters: ${error.message}`);
-        throw error;
-    }
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify(comparison)
+      }]
+    };
+  } catch (error) {
+    logger.error(`Error in compareMonsters: ${error.message}`);
+    throw error;
+  }
 }

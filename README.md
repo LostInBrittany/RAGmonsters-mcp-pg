@@ -109,10 +109,17 @@ LLM: (Uses our domain-specific API)
 │   ├── index.js        # Main application server
 │   ├── mcp-server/     # Custom MCP server implementation with FastMCP
 │   │   ├── index.js    # Server entry point
-│   │   ├── tools/      # Domain-specific tools
+│   │   ├── tools/      # Domain-specific tools (Actions)
 │   │   │   ├── index.js      # Tool registration
 │   │   │   └── monsters.js   # Monster-related operations
-│   │   └── utils/     # Helper utilities
+│   │   ├── resources/  # Static knowledge (Knowledge)
+│   │   │   ├── index.js      # Resource registration
+│   │   │   └── monsters.js   # Monster-related resources
+│   │   ├── prompts/    # Workflow templates (Guidance)
+│   │   │   ├── index.js      # Prompt registration
+│   │   │   └── monsters.js   # Monster-related prompts
+│   │   └── utils/      # Helper utilities
+│   │       ├── db.js         # Database utilities
 │   │       └── logger.js     # Logging functionality
 │   ├── llm.js          # LangChain integration for LLM
 │   └── public/         # Web interface files
@@ -196,10 +203,50 @@ LLM: (Uses our domain-specific API)
  8. **getMonsterByName** - Get monsters by name (partial match)
     - Parameters: name
     - Returns: Array of monster objects matching the name
- 
- 9. **add** - Simple utility to add two numbers (for testing)
-    - Parameters: a, b
-    - Returns: Sum of the two numbers
+
+ 9. **compareMonsters** - Compare two monsters side-by-side
+    - Parameters: monsterNameA, monsterNameB
+    - Returns: Comparison data including category, habitat, rarity, and stats
+
+### Available Resources
+
+Resources provide static knowledge that the LLM can access for context. Data is cached at server startup for optimal performance.
+
+ 1. **ragmonsters://schema** - Database schema definition
+    - Describes available tables, columns, and data types
+
+ 2. **ragmonsters://categories** - List of monster categories
+    - All available categories (e.g., Aquatic, Elemental, Spirit/Ethereal)
+
+ 3. **ragmonsters://subcategories** - List of monster subcategories
+    - Subcategories grouped by their parent category
+
+ 4. **ragmonsters://habitats** - List of monster habitats
+    - All habitats where monsters can be found
+
+### Available Prompts
+
+Prompts are workflow templates that guide the LLM through multi-step analysis using the available tools.
+
+ 1. **analyze_monster_weakness** - Weakness analysis workflow
+    - Fetches monster details, identifies vulnerabilities
+    - Finds counter-monsters and ranks them by effectiveness
+    - Provides battle strategy recommendations
+
+ 2. **compare_monsters** - Monster comparison framework
+    - Deep matchup analysis between two monsters
+    - Analyzes powers, abilities, flaws, and environmental factors
+    - Provides verdict with situational considerations
+
+ 3. **explore_habitat** - Habitat ecosystem analysis
+    - Maps monster population in a habitat
+    - Identifies apex predators and power hierarchy
+    - Provides danger assessment and exploration guidance
+
+ 4. **build_team** - Team composition strategy
+    - Builds optimal monster teams for specific objectives
+    - Considers category diversity and power synergies
+    - Recommends roles and backup alternatives
 
 ### LLM Integration Architecture
 
@@ -301,14 +348,25 @@ The application supports any OpenAI-compatible API, including self-hosted models
  We have also implemented the "Capability Modeling" best practices to clearly separate Actions (Tools), Knowledge (Resources), and Guidance (Prompts).
 
  ### 1. Tools: The Actions
- - `compareMonsters(nameA, nameB)`: A dedicated tool for checking two entities side-by-side. Provides visual comparison data and a textual summary.
+ Tools perform database queries and return structured data:
+ - `getMonsters`, `getMonsterById`: Core retrieval operations
+ - `getHabitats`, `getCategories`, `getBiomes`, `getRarities`: Reference data lookups
+ - `getMonsterByHabitat`, `getMonsterByName`: Specialized search operations
+ - `compareMonsters(nameA, nameB)`: Side-by-side comparison with analysis
 
  ### 2. Resources: The Knowledge
- - `ragmonsters://docs/query-tips`: Static documentation resource with querying advice.
- - `ragmonsters://images/{monsterId}`: Template resource simulating access to binary assets (monster artwork).
+ Resources provide static reference data cached at server startup:
+ - `ragmonsters://schema`: Database schema for understanding data structure
+ - `ragmonsters://categories`: All monster categories
+ - `ragmonsters://subcategories`: Subcategories grouped by parent category
+ - `ragmonsters://habitats`: All available habitats
 
  ### 3. Prompts: The Guidance
- - `disambiguation`: A prompt template to guide the LLM on how to handle ambiguous search results (e.g., "Ask for clarification instead of guessing").
+ Prompts are workflow templates that guide multi-step analysis:
+ - `analyze_monster_weakness`: Structured weakness analysis and counter-strategy generation
+ - `compare_monsters`: Detailed matchup framework for comparing two monsters
+ - `explore_habitat`: Ecosystem analysis for habitat exploration
+ - `build_team`: Team composition strategy for specific objectives
 
  ## Deploying to Clever Cloud
 

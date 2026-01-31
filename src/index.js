@@ -52,7 +52,7 @@ async function initializeApp() {
   const dbPool = initializeDbPool();
   
   // Create and start the MCP server
-  const mcpServer = createMCPServer(dbPool);
+  const mcpServer = await createMCPServer(dbPool);
   mcpServer.start({
     transportType: "stdio",
   });
@@ -61,12 +61,18 @@ async function initializeApp() {
   // Create an MCP client to communicate with the server
   const mcpClient = await createMCPClient(mcpServer);
   
-  // List available tools
+  // List available tools, resources, and prompts
   try {
     const tools = await mcpClient.listTools();
     console.log(`Available MCP tools: ${tools.tools.map(t => t.name).join(', ')}`);
+
+    const resources = await mcpClient.listResources();
+    console.log(`Available MCP resources: ${resources.resources.map(r => r.uri).join(', ')}`);
+
+    const prompts = await mcpClient.listPrompts();
+    console.log(`Available MCP prompts: ${prompts.prompts.map(p => p.name).join(', ')}`);
   } catch (error) {
-    console.error('Error listing MCP tools:', error);
+    console.error('Error listing MCP capabilities:', error);
   }
   
   // Create Express application

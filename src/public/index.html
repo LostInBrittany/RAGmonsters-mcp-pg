@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,47 +11,58 @@
             padding-top: 2rem;
             background-color: #f8f9fa;
         }
+
         .monster-card {
             cursor: pointer;
             transition: transform 0.2s;
             margin-bottom: 1rem;
             height: 100%;
         }
+
         .monster-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         .card-header {
             font-weight: bold;
         }
+
         .badge {
             margin-right: 0.3rem;
         }
+
         #monster-detail {
             display: none;
         }
+
         .detail-section {
             margin-bottom: 1.5rem;
         }
+
         .detail-title {
             font-weight: bold;
             border-bottom: 1px solid #dee2e6;
             padding-bottom: 0.5rem;
             margin-bottom: 1rem;
         }
+
         .loading {
             display: flex;
             justify-content: center;
             padding: 2rem;
         }
+
         .keyword-item {
             margin-bottom: 1rem;
         }
+
         .ability-list {
             padding-left: 1.5rem;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="pb-3 mb-4 border-bottom">
@@ -231,7 +243,7 @@
             try {
                 // Prepare the API call parameters
                 const args = {};
-                
+
                 if (Object.keys(filters).length > 0) {
                     args.filters = {};
                     if (filters.habitat) args.filters.habitat = filters.habitat;
@@ -253,10 +265,12 @@
                 }
 
                 const data = await response.json();
-                
-                // Parse the monster data from the content array
-                allMonsters = data.content.map(item => JSON.parse(item.text));
-                
+
+                // Parse the monster data from the MCP response format
+                // The response has content[0].text which contains a JSON string with a 'data' property
+                const responseData = JSON.parse(data.content[0].text);
+                allMonsters = responseData.data;
+
                 // Collect unique values for filters
                 allMonsters.forEach(monster => {
                     if (monster.habitat) uniqueHabitats.add(monster.habitat);
@@ -288,7 +302,7 @@
             }
 
             monstersContainer.innerHTML = '';
-            
+
             monsters.forEach(monster => {
                 const card = document.createElement('div');
                 card.className = 'col-md-4 mb-4';
@@ -305,12 +319,12 @@
                         </div>
                     </div>
                 `;
-                
+
                 // Add click event to show monster details
                 card.querySelector('.monster-card').addEventListener('click', () => {
                     fetchAndDisplayMonsterDetails(monster.id);
                 });
-                
+
                 monstersContainer.appendChild(card);
             });
         }
@@ -319,7 +333,7 @@
         async function fetchAndDisplayMonsterDetails(monsterId) {
             monsterList.style.display = 'none';
             monsterDetail.style.display = 'block';
-            
+
             // Show loading state
             monsterDetail.querySelector('.card-body').innerHTML = `
                 <div class="loading">
@@ -343,36 +357,38 @@
                 }
 
                 const data = await response.json();
-                const monster = JSON.parse(data.content[0].text);
-                
+                // Parse the MCP response format: content[0].text contains JSON with 'data' property
+                const responseData = JSON.parse(data.content[0].text);
+                const monster = responseData.data;
+
                 // Update the UI with monster details
                 document.getElementById('detail-name').textContent = monster.name;
                 document.getElementById('detail-category').textContent = monster.category;
                 document.getElementById('detail-habitat').textContent = monster.habitat;
                 document.getElementById('detail-rarity').textContent = monster.rarity;
                 document.getElementById('detail-discovery').textContent = monster.discovery || 'Unknown';
-                
+
                 // Physical attributes
                 if (monster.physicalAttributes) {
                     document.getElementById('detail-height').textContent = monster.physicalAttributes.height || 'Unknown';
                     document.getElementById('detail-weight').textContent = monster.physicalAttributes.weight || 'Unknown';
                     document.getElementById('detail-appearance').textContent = monster.physicalAttributes.appearance || 'Unknown';
                 }
-                
+
                 // Powers
                 document.getElementById('detail-primary-power').textContent = monster.powers.primary;
                 document.getElementById('detail-secondary-power').textContent = monster.powers.secondary;
                 document.getElementById('detail-special-ability').textContent = monster.powers.special;
-                
+
                 // Keywords and abilities
                 const keywordsContainer = document.getElementById('detail-keywords');
                 keywordsContainer.innerHTML = '';
-                
+
                 if (monster.keywords && monster.keywords.length > 0) {
                     monster.keywords.forEach(keyword => {
                         const keywordDiv = document.createElement('div');
                         keywordDiv.className = 'keyword-item';
-                        
+
                         let abilitiesHtml = '';
                         if (keyword.abilities && keyword.abilities.length > 0) {
                             abilitiesHtml = `
@@ -383,22 +399,22 @@
                                 </ul>
                             `;
                         }
-                        
+
                         keywordDiv.innerHTML = `
                             <strong>${keyword.name}</strong> (Rating: ${keyword.rating})
                             ${abilitiesHtml}
                         `;
-                        
+
                         keywordsContainer.appendChild(keywordDiv);
                     });
                 } else {
                     keywordsContainer.innerHTML = '<p>No keywords available</p>';
                 }
-                
+
                 // Strengths
                 const strengthsList = document.getElementById('detail-strengths');
                 strengthsList.innerHTML = '';
-                
+
                 if (monster.strengths && monster.strengths.length > 0) {
                     monster.strengths.forEach(strength => {
                         const li = document.createElement('li');
@@ -408,11 +424,11 @@
                 } else {
                     strengthsList.innerHTML = '<li>No known strengths</li>';
                 }
-                
+
                 // Weaknesses
                 const weaknessesList = document.getElementById('detail-weaknesses');
                 weaknessesList.innerHTML = '';
-                
+
                 if (monster.weaknesses && monster.weaknesses.length > 0) {
                     monster.weaknesses.forEach(weakness => {
                         const li = document.createElement('li');
@@ -422,10 +438,10 @@
                 } else {
                     weaknessesList.innerHTML = '<li>No known weaknesses</li>';
                 }
-                
+
                 // Restore the original card body structure
                 monsterDetail.querySelector('.card-body').innerHTML = document.getElementById('monster-detail').querySelector('.card-body').innerHTML;
-                
+
             } catch (error) {
                 console.error('Error fetching monster details:', error);
                 monsterDetail.querySelector('.card-body').innerHTML = `
@@ -452,7 +468,7 @@
                 option.textContent = habitat;
                 habitatFilter.appendChild(option);
             });
-            
+
             // Category filter
             categoryFilter.innerHTML = '<option value="">All Categories</option>';
             Array.from(uniqueCategories).sort().forEach(category => {
@@ -461,7 +477,7 @@
                 option.textContent = category;
                 categoryFilter.appendChild(option);
             });
-            
+
             // Rarity filter
             rarityFilter.innerHTML = '<option value="">All Rarities</option>';
             Array.from(uniqueRarities).sort().forEach(rarity => {
@@ -479,14 +495,15 @@
                 category: categoryFilter.value,
                 rarity: rarityFilter.value
             };
-            
+
             // Remove empty filters
             Object.keys(filters).forEach(key => {
                 if (!filters[key]) delete filters[key];
             });
-            
+
             fetchAndDisplayMonsters(filters);
         }
     </script>
 </body>
+
 </html>

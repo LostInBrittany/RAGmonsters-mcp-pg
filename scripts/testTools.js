@@ -35,46 +35,54 @@ const pool = new Pool(dbConfig);
  */
 async function testGetMonsters() {
   console.log('\n--- Testing getMonsters tool ---');
-  
+
   try {
-      // Initialize the tools with the database pool
+    // Initialize the tools with the database pool
     initializeTools(pool);
-    
+
     // Get all monsters with default parameters (limit 10)
     console.log('Getting monsters (default parameters):');
-    const monsters = await getMonsters({});
+    const monstersResponse = await getMonsters({});
+    const monstersData = JSON.parse(monstersResponse.content[0].text);
+    const monsters = monstersData.data;
     console.log(`Retrieved ${monsters.length} monsters`);
-    
+
     // Print the first monster
     console.log('\nFirst monster:');
     console.log(JSON.stringify(monsters[0], null, 2));
-    
+
     // Test filtering by habitat
     console.log('\nFiltering by habitat (Volcanic Mountains):');
-    const volcanicMonsters = await getMonsters({
+    const volcanicResponse = await getMonsters({
       filters: { habitat: 'Volcanic Mountains' }
     });
+    const volcanicData = JSON.parse(volcanicResponse.content[0].text);
+    const volcanicMonsters = volcanicData.data;
     console.log(`Retrieved ${volcanicMonsters.length} monsters from Volcanic Mountains`);
     console.log('Monster names:', volcanicMonsters.map(m => m.name).join(', '));
-    
+
     // Test sorting
     console.log('\nSorting by name in descending order:');
-    const sortedMonsters = await getMonsters({
+    const sortedResponse = await getMonsters({
       sort: { field: 'name', direction: 'desc' },
       limit: 5
     });
+    const sortedData = JSON.parse(sortedResponse.content[0].text);
+    const sortedMonsters = sortedData.data;
     console.log('Top 5 monsters sorted by name (desc):', sortedMonsters.map(m => m.name).join(', '));
-    
+
     // Test pagination
     console.log('\nPagination (limit 5, offset 10):');
-    const paginatedMonsters = await getMonsters({
+    const paginatedResponse = await getMonsters({
       limit: 5,
       offset: 10
     });
+    const paginatedData = JSON.parse(paginatedResponse.content[0].text);
+    const paginatedMonsters = paginatedData.data;
     console.log('Paginated monsters (5 results, starting from 10):', paginatedMonsters.map(m => m.name).join(', '));
-    
+
     return monsters[0].id; // Return the first monster ID for the next test
-    
+
   } catch (error) {
     console.error('Error testing getMonsters:', error);
     throw error;
@@ -87,20 +95,23 @@ async function testGetMonsters() {
  */
 async function testGetMonsterById(monsterId) {
   console.log('\n--- Testing getMonsterById tool ---');
-  
+
   try {
     // Get monster details (tools already initialized with the database pool)
     console.log(`Getting details for monster ID ${monsterId}:`);
-    const monsterDetails = await getMonsterById({ monsterId });
-    
+    const monsterResponse = await getMonsterById({ monsterId });
+    const monsterData = JSON.parse(monsterResponse.content[0].text);
+    const monsterDetails = monsterData.data;
+
     // Print selected details
     console.log('\nMonster details:');
     console.log(`Name: ${monsterDetails.name}`);
     console.log(`Category: ${monsterDetails.category}`);
+    console.log(`Subcategory: ${monsterDetails.subcategory}`);
     console.log(`Habitat: ${monsterDetails.habitat}`);
     console.log(`Rarity: ${monsterDetails.rarity}`);
     console.log(`Powers: ${monsterDetails.powers.primary}, ${monsterDetails.powers.secondary}, ${monsterDetails.powers.special}`);
-    
+
     console.log('\nKeywords and Abilities:');
     monsterDetails.keywords.forEach(keyword => {
       console.log(`- ${keyword.name} (Rating: ${keyword.rating})`);
@@ -108,17 +119,17 @@ async function testGetMonsterById(monsterId) {
         console.log(`  • ${ability.name} (${ability.mastery})`);
       });
     });
-    
+
     console.log('\nStrengths:');
     monsterDetails.strengths.forEach(strength => {
       console.log(`- Strong against ${strength.target} (${strength.modifier})`);
     });
-    
+
     console.log('\nWeaknesses:');
     monsterDetails.weaknesses.forEach(weakness => {
       console.log(`- Weak against ${weakness.target} (${weakness.modifier})`);
     });
-    
+
   } catch (error) {
     console.error('Error testing getMonsterById:', error);
     throw error;
@@ -131,17 +142,17 @@ async function testGetMonsterById(monsterId) {
 async function main() {
   try {
     console.log('Testing direct access to domain-specific tools...');
-    
+
     // Test getMonsters and get a monster ID
     const monsterId = await testGetMonsters();
-    
+
     // Test getMonsterById with the retrieved ID
     if (monsterId) {
       await testGetMonsterById(monsterId);
     }
-    
+
     console.log('\nAll tests completed successfully!');
-    
+
   } catch (error) {
     console.error('Error running tests:', error);
   } finally {

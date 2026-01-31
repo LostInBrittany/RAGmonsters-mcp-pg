@@ -1,12 +1,12 @@
 /**
  * Tool definitions for the RAGmonsters MCP server
  */
-import { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools } from './monsters.js';
+import { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getSubcategories, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools } from './monsters.js';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
 // Export the tools and initialize function
-export { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools };
+export { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getSubcategories, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools };
 
 /**
  * Register all tools with an MCP server
@@ -75,6 +75,15 @@ export function registerToolsWithServer(server) {
     description: 'Get a list of all available rarities in the database',
     parameters: z.object({}),
     execute: getRarities
+  });
+
+  server.addTool({
+    name: 'getSubcategories',
+    description: 'Get a list of all subcategories with their parent categories. Optionally filter by category name.',
+    parameters: z.object({
+      categoryName: z.string().optional().describe('Optional category name to filter subcategories')
+    }),
+    execute: getSubcategories
   });
 
   server.addTool({
