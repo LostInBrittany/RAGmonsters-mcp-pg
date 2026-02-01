@@ -188,10 +188,9 @@ export function getSystemMessage() {
 
 - **getMonsters**: Get a list of monsters with optional filtering, sorting, and pagination
 - **getMonsterById**: Get detailed information about a specific monster by ID
-- **getHabitats**: Get a list of all available habitats
-- **getCategories**: Get a list of all available categories
-- **getSubcategories**: Get subcategories, optionally filtered by category
-- **getMonsterByHabitat**: Get monsters by habitat (exact match)
+- **getBiomes**: Get a list of all available biomes
+- **getRarities**: Get a list of all available rarities
+- **getMonsterByHabitat**: Get monsters by habitat (use habitats from Available Knowledge)
 - **getMonsterByName**: Get monsters by name (partial match)
 - **compareMonsters**: Compare two monsters side-by-side
 

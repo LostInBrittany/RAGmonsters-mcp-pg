@@ -127,6 +127,12 @@ async function initializeApp() {
     }
     
     try {
+      // Create the agent if it doesn't exist (must be done first to populate resource/prompt cache)
+      if (!agent) {
+        console.log('Creating LangChain agent with MCP tools');
+        agent = await createAgent(mcpClient);
+      }
+
       // Get conversation history from session or create new one
       let conversation = {};
       if (conversationId && app.locals.conversations && app.locals.conversations[conversationId]) {
@@ -136,8 +142,8 @@ async function initializeApp() {
         if (!app.locals.conversations) {
           app.locals.conversations = {};
         }
-        
-        // Create a new conversation with system message
+
+        // Create a new conversation with system message (after agent is created so resources are cached)
         const newConversationId = Date.now().toString();
         app.locals.conversations[newConversationId] = {
           id: newConversationId,
@@ -146,13 +152,6 @@ async function initializeApp() {
           ]
         };
         conversation = app.locals.conversations[newConversationId];
-      }
-      
-      // Create the agent if it doesn't exist
-      if (!agent) {
-        console.log('Creating LangChain agent with MCP tools');
-        const tools = await mcpClient.listTools();
-        agent = await createAgent(mcpClient);
       }
       
       // Process the message with LangChain agent

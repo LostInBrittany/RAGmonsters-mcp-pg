@@ -1,12 +1,12 @@
 /**
  * Tool definitions for the RAGmonsters MCP server
  */
-import { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getSubcategories, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools } from './monsters.js';
+import { getMonsters, getMonsterById, getRarities, getBiomes, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools } from './monsters.js';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
 // Export the tools and initialize function
-export { getMonsters, getMonsterById, getHabitats, getCategories, getRarities, getBiomes, getSubcategories, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools };
+export { getMonsters, getMonsterById, getRarities, getBiomes, getMonsterByHabitat, getMonsterByName, compareMonsters, initializeTools };
 
 /**
  * Create a logged wrapper for a tool function
@@ -73,20 +73,6 @@ export function registerToolsWithServer(server) {
   });
 
   server.addTool({
-    name: 'getHabitats',
-    description: 'Get a list of all available habitats in the database',
-    parameters: z.object({}),
-    execute: withLogging('getHabitats', getHabitats)
-  });
-
-  server.addTool({
-    name: 'getCategories',
-    description: 'Get a list of all available categories in the database',
-    parameters: z.object({}),
-    execute: withLogging('getCategories', getCategories)
-  });
-
-  server.addTool({
     name: 'getBiomes',
     description: 'Get a list of all available biomes in the database',
     parameters: z.object({}),
@@ -101,19 +87,10 @@ export function registerToolsWithServer(server) {
   });
 
   server.addTool({
-    name: 'getSubcategories',
-    description: 'Get a list of all subcategories with their parent categories. Optionally filter by category name.',
-    parameters: z.object({
-      categoryName: z.string().optional().describe('Optional category name to filter subcategories')
-    }),
-    execute: withLogging('getSubcategories', getSubcategories)
-  });
-
-  server.addTool({
     name: 'getMonsterByHabitat',
-    description: 'Get monsters by habitat (exact match only). IMPORTANT: for best results, first call getHabitats to get a list of available habitats, then find the most appropriate one to use with this tool.',
+    description: 'Get monsters by habitat (exact match only). Use the ragmonsters://habitats resource for the list of valid habitat names.',
     parameters: z.object({
-      habitat: z.string().describe('Exact habitat name (must match exactly). For best results, first call getHabitats to get a list of available habitats, then find the most appropriate one to use with this tool.'),
+      habitat: z.string().describe('Exact habitat name (must match exactly). Refer to the ragmonsters://habitats resource for valid habitat names.'),
       limit: z.number().optional().describe('Maximum number of results to return (default: 10)')
     }),
     execute: withLogging('getMonsterByHabitat', getMonsterByHabitat)

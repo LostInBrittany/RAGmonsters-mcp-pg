@@ -17,32 +17,6 @@ export function initializeTools(pool) {
 }
 
 /**
- * Get a list of distinct categories
- * @returns {Promise<Object>} List of categories
- */
-export async function getCategories() {
-  try {
-    if (!dbPool) throw new Error('Database pool not initialized');
-
-    const query = 'SELECT category_id, category_name FROM ragmonsters.categories ORDER BY category_name ASC';
-    const result = await executeQuery(dbPool, query);
-
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result.map(r => ({
-          id: r.category_id,
-          name: r.category_name
-        })))
-      }]
-    };
-  } catch (error) {
-    logger.error(`Error in getCategories: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
  * Get a list of distinct rarities
  * @returns {Promise<Object>} List of rarities
  */
@@ -61,58 +35,6 @@ export async function getRarities() {
     };
   } catch (error) {
     logger.error(`Error in getRarities: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Get a list of subcategories with their parent categories
- * @param {Object} [params] - Optional parameters
- * @param {string} [params.categoryName] - Filter by category name
- * @returns {Promise<Object>} List of subcategories
- */
-export async function getSubcategories(params = {}) {
-  try {
-    if (!dbPool) throw new Error('Database pool not initialized');
-
-    let query = `
-      SELECT 
-        s.subcategory_id, 
-        s.subcategory_name, 
-        c.category_id,
-        c.category_name
-      FROM 
-        ragmonsters.subcategories s
-      JOIN 
-        ragmonsters.categories c ON s.category_id = c.category_id
-    `;
-
-    const queryParams = [];
-
-    if (params.categoryName) {
-      queryParams.push(params.categoryName);
-      query += ` WHERE c.category_name = $1`;
-    }
-
-    query += ` ORDER BY c.category_name ASC, s.subcategory_name ASC`;
-
-    const result = await executeQuery(dbPool, query, queryParams);
-
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result.map(r => ({
-          id: r.subcategory_id,
-          name: r.subcategory_name,
-          category: {
-            id: r.category_id,
-            name: r.category_name
-          }
-        })))
-      }]
-    };
-  } catch (error) {
-    logger.error(`Error in getSubcategories: ${error.message}`);
     throw error;
   }
 }
@@ -454,48 +376,6 @@ export async function getMonsterById(params) {
     logger.error(`Error in getMonsterById: ${error.message}`);
     logger.error(error.stack);
     throw new Error(`Failed to retrieve monster details: ${error.message}`);
-  }
-}
-
-/**
- * Get a list of all available habitats in the database
- * 
- * @returns {Promise<Array>} List of all habitat names
- */
-export async function getHabitats() {
-  try {
-    if (!dbPool) {
-      throw new Error('Database pool not initialized. Call initialize() first.');
-    }
-
-    logger.info('getHabitats called');
-
-    // Query to get distinct habitats
-    const query = `
-      SELECT DISTINCT habitat
-      FROM ragmonsters.monsters
-      WHERE habitat IS NOT NULL
-      ORDER BY habitat ASC
-    `;
-
-    const results = await executeQuery(dbPool, query);
-
-    // Extract habitat names
-    const habitats = results.map(row => row.habitat);
-
-    logger.info(`getHabitats returning ${habitats.length} habitats`);
-
-    // Format the response
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(habitats)
-      }]
-    };
-  } catch (error) {
-    logger.error(`Error in getHabitats: ${error.message}`);
-    logger.error(error.stack);
-    throw new Error(`Failed to retrieve habitats: ${error.message}`);
   }
 }
 
